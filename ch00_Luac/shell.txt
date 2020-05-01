@@ -1,0 +1,8 @@
+luac53 .\HelloWorld.lua  #生成luac.out
+luac53 -o .\hw.luac .\HelloWorld.lua  #生成hw.luac
+luac53 -s .\HelloWorld.lua  #不包含调试信息
+luac53 -p .\HelloWorld.lua  #只进行语法检测
+
+lua53 .\HelloWorld.lua #执行lua 预编译不会加快脚本速度 但是可以加快加载速度
+
+luac53 -l .\luac.out #可以进行反编译

@@ -1,7 +1,7 @@
 package LuaGo
 
 type header struct {
-	//独特的签名 用于识别文件 ESCLua 的十六进制 0x1B4C7564
+	//独特的签名 用于识别文件 ESCLua 的十六进制 0x1B4C7564  , ESC(Escape)
 	signature [4]byte
 	//版本号 大版本.小版本.发布号 5.4.5  => 5*16+4 => 83 发布号不统计
 	version byte
@@ -24,6 +24,37 @@ type header struct {
 	luacInt byte
 	//lua浮点数 n(8)个字节存放 370.5 目的检测二进制chunk的浮点数格式 如IEEE754
 	luacNum float64
+}
+
+const (
+	LUA_SIGNATURE    = "\x1bLua"
+	LUAC_VERSION     = 0x53
+	LUAC_FORMAT      = 0
+	LUAC_DATA        = "\x19\x93\r\n\x1a\n"
+	CINT_SIZE        = 4
+	CSIZET_SIZE      = 8
+	INSTRUCTION_SIZE = 4
+	LUA_INTEGER_SIZE = 8
+	LUA_NUMBER_SIZE  = 8
+	LUAC_INT         = 0x5678
+	LUAC_NUM         = 370.5
+)
+
+type Prototype struct {
+	//main 函数  储存main函数的名字长度 + 符号 + 文件名字  符号@ 表示来自文件 #来自字符串
+	Source          string
+	LineDefined     uint32
+	LastLineDefined uint32
+	NumParams       byte
+	IsVararg        byte
+	MaxStackSize    byte
+	Code            []uint32
+	Constants       []interface{}
+	Upvalues        []Upvalues
+	Protos          []*Prototype
+	LineInfo        []uint32
+	LocVars         []LocVar
+	UpValueNames    []string
 }
 
 type BinaryChunk struct {

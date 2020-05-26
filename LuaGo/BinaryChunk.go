@@ -40,21 +40,59 @@ const (
 	LUAC_NUM         = 370.5
 )
 
+//用空接口 代替 联合体(Union) 的效果 把不同的数据类型统一起来
+const (
+	TAG_NIL       = 0x00 //nil 不储存
+	TAG_BOOLEAN   = 0x01 //bool 0,1
+	TAG_NUMBER    = 0x03 //number Lua浮点数
+	TAG_INTEGER   = 0x13 //integer Lua 整数
+	TAG_SHORT_STR = 0x04 //string 短字符串
+	TAG_LONG_STR  = 0x14 //string 长字符串
+)
+
+//Upvalues表  每个元素占2个字节
+type Upvalue struct {
+	Instack byte
+	Idx     byte
+}
+
+//局部变量表 记录局部变量名  表中每个元素都包含变量名(按字符串储存) 和 起止指令索引(按cint储存)
+type LocVar struct {
+	VarName string
+	StartPC uint32
+	EndPC   uint32
+}
+
 type Prototype struct {
 	//main 函数  储存main函数的名字长度 + 符号 + 文件名字  符号@ 表示来自文件 #来自字符串
-	Source          string
+	Source string
+	//起止行号 下面两个cint  普通函数起止行号大于0  主函数都是0
 	LineDefined     uint32
 	LastLineDefined uint32
-	NumParams       byte
-	IsVararg        byte
-	MaxStackSize    byte
-	Code            []uint32
-	Constants       []interface{}
-	Upvalues        []Upvalues
-	Protos          []*Prototype
-	LineInfo        []uint32
-	LocVars         []LocVar
-	UpValueNames    []string
+	//固定参数个数 固定参数相对于变长参数而言的 主函数通常是0固定参数
+	NumParams byte
+	//是否有变长参数 0代表否 1代表是  主函数是vararg 所以是1
+	IsVararg byte
+	//寄存器数量  一个函数执行期间用多少个虚拟寄存器   Lua通常在编译期间统计好并且保存下来
+	MaxStackSize byte
+	//指令表  每条指令占4个字节  然后有几个指令
+	Code []uint32
+	//常量表 以1字节tag开头标记识别六种类型 nil,布尔值,整数,整数,浮点,字符串
+	Constants []interface{}
+	//Upvalues表  每个元素占2个字节
+	Upvalues []Upvalue
+	//函数原型表 长度为0
+	Protos []*Prototype
+	//行号表 每个指令对应的行号
+	LineInfo []uint32
+	//局部变量表 记录局部变量名  表中每个元素都包含变量名(按字符串储存) 和 起止指令索引(按cint储存)
+	//如果主函数没有局部变量  则 长度是0
+	LocVars []LocVar
+	//Upvalue名列表 通常储存为_ENV
+	UpValueNames []string
+	//如果编译时候加了-s
+	//行号表 局部变量表 和 upvalue名列表  这三个储存的都是调试信息
+	//Lua编译器就会在二进制chunk中把这三个表清空
 }
 
 type BinaryChunk struct {

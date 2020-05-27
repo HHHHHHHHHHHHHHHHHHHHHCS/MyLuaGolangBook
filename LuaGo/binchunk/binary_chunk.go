@@ -1,4 +1,4 @@
-package LuaGo
+package binchunk
 
 type header struct {
 	//独特的签名 用于识别文件 ESCLua 的十六进制 0x1B4C7564  , ESC(Escape)
@@ -99,4 +99,12 @@ type BinaryChunk struct {
 	header                  //头部
 	sizeUpvalues byte       //主函数upvalue的数量
 	mainFunc     *Prototype //主函数原型
+}
+
+//用于解析二进制chunk
+func Undump(data []byte) *Prototype {
+	reader := &Reader{data}
+	reader.checkHeader()        //跳过头部检验
+	reader.readByte()           //跳过Upvalue数量
+	return reader.readProto("") //读取函数原型
 }

@@ -59,16 +59,73 @@ func (self *reader) readString() string {
 	return string(bytes)
 }
 
-func (self *reader) CheckHeader() {
+func (self *reader) checkHeader() {
 	if string(self.readBytes(4)) != LUA_SIGNATURE {
 		panic("not a precompiled chunk!")
-	} else if self.readByte() != LUAC_VERSION {
+	}
+	if self.readByte() != LUAC_VERSION {
 		panic("version mismatch!")
 	}
-	else if self.readByte()!=LUAC_FORMAT{
+	if self.readByte() != LUAC_FORMAT {
 		panic("format mismatch!")
 	}
-	else if string(self.readBytes(6)) != LUAC_DATA{
+	if string(self.readBytes(6)) != LUAC_DATA {
 		panic("corrupted!")
 	}
+	if self.readByte() != CINT_SIZE {
+		panic("int size mismatch!")
+	}
+	if self.readByte() != CSIZET_SIZE {
+		panic("size_t size mismatch!")
+	}
+	if self.readByte() != INSTRUCTION_SIZE {
+		panic("instruction size mismatch!")
+	}
+	if self.readByte() != LUA_INTEGER_SIZE {
+		panic("lua_Integer size mismatch!")
+	}
+	if self.readByte() != LUA_NUMBER_SIZE {
+		panic("lua_Number size mismatch!")
+	}
+	if self.readLuaInteger() != LUAC_INT {
+		panic("endianness mismatch!")
+	}
+	if self.readLuaNumber() != LUAC_NUM {
+		panic("float format mismatch!")
+	}
+}
+
+func (self *reader) readProto(parentSource string) *Prototype {
+	source := self.readString()
+	if source == "" {
+		source = parentSource
+	}
+	return &Prototype{
+		Source:          source,
+		LineDefined:     self.readUint32(),
+		LastLineDefined: self.readUint32(),
+		NumParams:       self.readByte(),
+		IsVararg:        self.readByte(),
+		MaxStackSize:    self.readByte(),
+		Code:            self.readCode(),
+		Constants:       self.readConstants,
+		Upvalues:        self.readUpValues(),
+		Protos:          self.readProtos(source),
+		LineInfo:        self.readLineInfo(),
+		LocVars:         self.readLocVars(),
+		UpValueNames:    self.readUpvalueName(),
+	}
+}
+
+//获取指令表
+func (self *reader) readCode() []uint32 {
+	code := make([]uint32, self.readUint32())
+	for i := range code {
+		code[i] = self.readUint32()
+	}
+	return code
+}
+
+func (self *reader) readConstants() []interface{} {
+	//TODO:
 }

@@ -63,6 +63,7 @@ type LocVar struct {
 	EndPC   uint32
 }
 
+//函数原型
 type Prototype struct {
 	//main 函数  储存main函数的名字长度 + 符号 + 文件名字  符号@ 表示来自文件 #来自字符串
 	Source string
@@ -95,6 +96,7 @@ type Prototype struct {
 	//Lua编译器就会在二进制chunk中把这三个表清空
 }
 
+//二进制chunk
 type BinaryChunk struct {
 	header                  //头部
 	sizeUpvalues byte       //主函数upvalue的数量
@@ -103,7 +105,7 @@ type BinaryChunk struct {
 
 //用于解析二进制chunk
 func Undump(data []byte) *Prototype {
-	reader := &Reader{data}
+	reader := &reader{data}
 	reader.checkHeader()        //跳过头部检验
 	reader.readByte()           //跳过Upvalue数量
 	return reader.readProto("") //读取函数原型

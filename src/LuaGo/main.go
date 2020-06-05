@@ -60,7 +60,20 @@ func printCode(f *binchunk.Prototype) {
 func printDetail(f *binchunk.Prototype) {
 	fmt.Printf("constants (%d):\n", len(f.Constants))
 	for i, k := range f.Constants {
-		fmt.Printf("\t%d\t%s\n", i+1)
+		fmt.Printf("\t%d\t%s\n", i+1, constantToString(k))
+	}
+
+	fmt.Printf("locals (%d):\n", len(f.LocVars))
+	for i, locvar := range f.LocVars {
+		fmt.Printf("\t%d\t%s\t%d\t%d\n",
+			i, locvar.VarName, locvar.StartPC+1, locvar.EndPC+1)
+	}
+
+	fmt.Printf("upvalues (%d):\n", len(f.Upvalues))
+	for i, upval := range f.Upvalues {
+		fmt.Printf("\t%d\t%s\t%d\t%d\n",
+			i, upva)
+		//TODO:
 	}
 }
 
@@ -71,6 +84,13 @@ func constantToString(k interface{}) string {
 		return ""
 	case bool:
 		return fmt.Sprintf("%t", k)
-
+	case float64:
+		return fmt.Sprintf("%g", k)
+	case int64:
+		return fmt.Sprintf("%d", k)
+	case string:
+		return fmt.Sprintf("%q", k)
+	default:
+		return "?"
 	}
 }

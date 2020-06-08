@@ -3,25 +3,35 @@ package main
 import (
 	"LuaGo/binchunk"
 	"fmt"
-
-	//"fmt"
 	"io/ioutil"
-	"os"
 )
 
 func main() {
-	if len(os.Args) > 1 {
-		data, err := ioutil.ReadFile(os.Args[1])
-		if err != nil {
-			panic(err)
-		}
-		proto := binchunk.Undump(data)
-		println(proto)
+	data, err := ioutil.ReadFile("src/CH00_Luac/luac.out")
+	if err != nil {
+		panic(err)
 	}
+	proto := binchunk.Undump(data)
+	println(proto)
+	/*
+		if len(os.Args) > 1 {
+			data, err := ioutil.ReadFile(os.Args[1])
+			if err != nil {
+				panic(err)
+			}
+			proto := binchunk.Undump(data)
+			println(proto)
+		}
+	*/
 }
 
 func list(f *binchunk.Prototype) {
-
+	printHeader(f)
+	printCode(f)
+	printDetail(f)
+	for _, p := range f.Protos {
+		list(p)
+	}
 }
 
 func printHeader(f *binchunk.Prototype) {
@@ -72,8 +82,7 @@ func printDetail(f *binchunk.Prototype) {
 	fmt.Printf("upvalues (%d):\n", len(f.Upvalues))
 	for i, upval := range f.Upvalues {
 		fmt.Printf("\t%d\t%s\t%d\t%d\n",
-			i, upva)
-		//TODO:
+			i, upvalName(f, i), upval.Instack, upval.Idx)
 	}
 }
 
@@ -93,4 +102,12 @@ func constantToString(k interface{}) string {
 	default:
 		return "?"
 	}
+}
+
+func upvalName(f *binchunk.Prototype, idx int) string {
+	if len(f.UpValueNames) > 0 {
+		return f.UpValueNames[idx]
+	}
+
+	return "-"
 }

@@ -53,7 +53,7 @@ func (self *reader) readString() string {
 		return ""
 	}
 	if size == 0xFF { //长字符串
-		size = uint(self.readUint64())
+		size = uint(self.readUint64()) //size_t
 	}
 	bytes := self.readBytes(size - 1)
 	return string(bytes)
@@ -114,7 +114,7 @@ func (self *reader) readProto(parentSource string) *Prototype {
 		Protos:          self.readProtos(source),
 		LineInfo:        self.readLineInfo(),
 		LocVars:         self.readLocVars(),
-		UpValueNames:    self.readUpvalueNames(),
+		UpvalueNames:    self.readUpvalueNames(),
 	}
 }
 
@@ -131,7 +131,7 @@ func (self *reader) readCode() []uint32 {
 func (self *reader) readConstants() []interface{} {
 	constants := make([]interface{}, self.readUint32())
 	for i := range constants {
-		constants[i] = self.readConstants()
+		constants[i] = self.readConstant()
 	}
 	return constants
 }

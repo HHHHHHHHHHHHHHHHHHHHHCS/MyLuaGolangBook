@@ -1,31 +1,5 @@
 package binchunk
 
-type header struct {
-	//独特的签名 用于识别文件 ESCLua 的十六进制 0x1B4C7564  , ESC(Escape)
-	signature [4]byte
-	//版本号 大版本.小版本.发布号 5.4.5  => 5*16+4 => 83 发布号不统计
-	version byte
-	//格式号 默认0
-	format byte
-	//进一步校验  是不是lua文件或损坏 0x1993(lua发布年份) 0x0D(回车) 0x0A(换行) 0x1A(替换) 0x0A(新换行)
-	luacData [6]byte
-	//数据类型长度 不符合则拒绝加载
-	//int 4位
-	cintSize byte
-	//size_t 8位
-	sizetSize byte
-	//lua虚拟机指令 4位
-	instructionSize byte
-	//lua整数 8位
-	luaIntegerSize byte
-	//lua浮点数 8位
-	luaNumberSize byte
-	//lua整数值 n(8)个字节存放 0x5678 目的检测二进制chunk的大小端方式
-	luacInt byte
-	//lua浮点数 n(8)个字节存放 370.5 目的检测二进制chunk的浮点数格式 如IEEE754
-	luacNum float64
-}
-
 const (
 	LUA_SIGNATURE    = "\x1bLua"
 	LUAC_VERSION     = 0x53
@@ -50,17 +24,37 @@ const (
 	TAG_LONG_STR  = 0x14 //string 长字符串
 )
 
-//Upvalues表  每个元素占2个字节
-type Upvalue struct {
-	Instack byte
-	Idx     byte
+//二进制chunk
+type binaryChunk struct {
+	header                  //头部
+	sizeUpvalues byte       //主函数upvalue的数量
+	mainFunc     *Prototype //主函数原型
 }
 
-//局部变量表 记录局部变量名  表中每个元素都包含变量名(按字符串储存) 和 起止指令索引(按cint储存)
-type LocVar struct {
-	VarName string
-	StartPC uint32
-	EndPC   uint32
+type header struct {
+	//独特的签名 用于识别文件 ESCLua 的十六进制 0x1B4C7564  , ESC(Escape)
+	signature [4]byte
+	//版本号 大版本.小版本.发布号 5.4.5  => 5*16+4 => 83 发布号不统计
+	version byte
+	//格式号 默认0
+	format byte
+	//进一步校验  是不是lua文件或损坏 0x1993(lua发布年份) 0x0D(回车) 0x0A(换行) 0x1A(替换) 0x0A(新换行)
+	luacData [6]byte
+	//数据类型长度 不符合则拒绝加载
+	//int 4位
+	cintSize byte
+	//size_t 8位
+	sizetSize byte
+	//lua虚拟机指令 4位
+	instructionSize byte
+	//lua整数 8位
+	luaIntegerSize byte
+	//lua浮点数 8位
+	luaNumberSize byte
+	//lua整数值 n(8)个字节存放 0x5678 目的检测二进制chunk的大小端方式
+	luacInt int64
+	//lua浮点数 n(8)个字节存放 370.5 目的检测二进制chunk的浮点数格式 如IEEE754
+	luacNum float64
 }
 
 //函数原型
@@ -90,17 +84,23 @@ type Prototype struct {
 	//如果主函数没有局部变量  则 长度是0
 	LocVars []LocVar
 	//Upvalue名列表 通常储存为_ENV
-	UpValueNames []string
+	UpvalueNames []string
 	//如果编译时候加了-s
 	//行号表 局部变量表 和 upvalue名列表  这三个储存的都是调试信息
 	//Lua编译器就会在二进制chunk中把这三个表清空
 }
 
-//二进制chunk
-type BinaryChunk struct {
-	header                  //头部
-	sizeUpvalues byte       //主函数upvalue的数量
-	mainFunc     *Prototype //主函数原型
+//Upvalues表  每个元素占2个字节
+type Upvalue struct {
+	Instack byte
+	Idx     byte
+}
+
+//局部变量表 记录局部变量名  表中每个元素都包含变量名(按字符串储存) 和 起止指令索引(按cint储存)
+type LocVar struct {
+	VarName string
+	StartPC uint32
+	EndPC   uint32
 }
 
 //用于解析二进制chunk

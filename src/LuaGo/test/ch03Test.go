@@ -13,7 +13,7 @@ type CH03Test struct {
 }
 
 func (test *CH03Test) DoTest() {
-	data, err := ioutil.ReadFile("src/CH00_Luac/luac.out")
+	data, err := ioutil.ReadFile("src/CH00_Luac/hw.luac")
 	if err != nil {
 		panic(err)
 	}
@@ -70,7 +70,7 @@ func (test *CH03Test) printCode(f *binchunk.Prototype) {
 		}
 		i := Instruction(c)
 		//打印 指令的序号 行号 十六进制
-		fmt.Printf("\t%d\t[%s]\t0x%08X\n", pc+1, line, c)
+		fmt.Printf("\t%d\t[%s]\t%s \t", pc+1, line, i.OpName())
 		printOperands(i)
 		fmt.Printf("\n")
 	}
@@ -139,5 +139,21 @@ func printOperands(i Instruction) {
 				fmt.Printf(" %d", c)
 			}
 		}
+	case IABx:
+		a, bx := i.ABx()
+		fmt.Printf("%d", a)
+		if i.BMode() == OpArgK {
+			//如果操作数的最高位是1 则表示常量 按负数输出
+			fmt.Printf(" %d", -1-bx)
+		} else if i.BMode() == OpArgU {
+			fmt.Printf(" %d", bx)
+		}
+	case IAsBx:
+		a, sbx := i.AsBx()
+		fmt.Printf("%d %d", a, sbx)
+	case IAx:
+		ax := i.Ax()
+		//如果操作数是常量则按照负数输出
+		fmt.Printf("%d", -1-ax)
 	}
 }

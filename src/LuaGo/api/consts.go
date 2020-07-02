@@ -1,7 +1,5 @@
 package api
 
-type LuaType = int
-
 const (
 	LUA_TNONE = iota - 1 //-1 无效索引值
 	LUA_TNIL

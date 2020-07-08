@@ -50,8 +50,8 @@ func (self *luaState) Remove(idx int) {
 	self.Pop(1)
 }
 
-//将[idx,top]内的值朝栈顶旋转n个方向 如果n是负数 则旋转到栈底
-//lua进行是那次旋转
+//将[idx,top]内的值朝栈顶旋转(位移)n个方向 如果n是负数 则旋转到栈底
+//lua进行是三次旋转
 func (self *luaState) Rotate(idx, n int) {
 	t := self.stack.top - 1
 	p := self.stack.absIndex(idx) - 1

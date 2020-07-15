@@ -18,7 +18,7 @@ type LuaState interface {
 	SetTop(idx int)
 	//栈访问 stack->go
 	TypeName(tp LuaType) string
-	Type(idx int) bool
+	Type(idx int) LuaType
 	IsNone(idx int) bool
 	IsNil(idx int) bool
 	IsNoneOrNil(idx int) bool
@@ -27,13 +27,13 @@ type LuaState interface {
 	IsNumber(idx int) bool
 	IsString(idx int) bool
 	ToBoolean(idx int) bool
-	ToInteger(idx int) bool
+	ToInteger(idx int) int64
 	ToIntegerX(idx int) (int64, bool)
 	ToNumber(idx int) float64
 	ToString(idx int) string
 	ToStringX(idx int) (string, bool)
 	//压入栈 go->stacks
-	PushNil(b bool)
+	PushNil()
 	PushInteger(n int64)
 	PushNumber(n float64)
 	PushString(n string)

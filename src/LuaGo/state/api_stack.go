@@ -33,7 +33,7 @@ func (self *luaState) PushValue(idx int) {
 	self.stack.push(val)
 }
 
-//溢出栈顶 替换一个新的值
+//移除栈顶的值 替换成某个索引 的值
 func (self *luaState) Replace(idx int) {
 	val := self.stack.pop()
 	self.stack.set(idx, val)
@@ -67,7 +67,7 @@ func (self *luaState) Rotate(idx, n int) {
 
 }
 
-//将栈顶设为指定值  如果小于当前索引 则相当于弹出
+//将栈顶数量设置会指定数量  如果小于当前索引 则相当于弹出
 func (self *luaState) SetTop(idx int) {
 	newTop := self.stack.absIndex(idx)
 	if newTop < 0 {

@@ -29,3 +29,23 @@ func IMod(a, b int64) int64 {
 func FMod(a, b float64) float64 {
 	return a - math.Floor(a/b)*b
 }
+
+//左位移  右边操作数只能是无符号整数
+//如果n<0 则代表反向位移 (因为GO 只支持 正方向 移动)
+func ShiftLeft(a, n int64) int64 {
+	if n >= 0 {
+		return a << uint64(n)
+	} else {
+		return ShiftRight(a, -n)
+	}
+}
+
+//右位移  我们需要的是无符号位移
+//所以先转换成无符号 处理好了再转换为有符号的
+func ShiftRight(a, n int64) int64 {
+	if n >= 0 {
+		return int64(uint64(a) >> uint64(n))
+	} else {
+		return ShiftLeft(a, -n)
+	}
+}

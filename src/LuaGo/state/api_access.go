@@ -1,8 +1,8 @@
 package state
 
 import (
-	"fmt"
 	. "LuaGo/api"
+	"fmt"
 )
 
 //从栈顶获取信息
@@ -88,14 +88,7 @@ func (self *luaState) ToNumber(idx int) float64 {
 //进行带转换结果的数字转换 如果不是数字 则返回 0 和 结果
 func (self *luaState) ToNumberX(idx int) (float64, bool) {
 	val := self.stack.get(idx)
-	switch x := val.(type) {
-	case float64:
-		return x, true
-	case int64:
-		return float64(x), true
-	default:
-		return 0, false
-	}
+	return convertToFloat(val)
 }
 
 //转换为整数 失败为 0
@@ -107,8 +100,7 @@ func (self *luaState) ToInteger(idx int) int64 {
 //转换为整数 和  转换结果
 func (self *luaState) ToIntegerX(idx int) (int64, bool) {
 	val := self.stack.get(idx)
-	i, ok := val.(int64)
-	return i, ok
+	return convertToInteger(val)
 }
 
 //转换为字符串 数字也可以转换为字符串 失败为空字符串

@@ -49,3 +49,9 @@ func ShiftRight(a, n int64) int64 {
 		return ShiftLeft(a, -n)
 	}
 }
+
+//浮点数转换成整数  去除小数点 且没有超出范围 则表示成功
+func FloatToInteger(f float64) (int64, bool) {
+	i := int64(f)
+	return i, float64(i) == f
+}

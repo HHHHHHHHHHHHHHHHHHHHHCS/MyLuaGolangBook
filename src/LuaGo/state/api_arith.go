@@ -28,6 +28,30 @@ var (
 	shr   = number.ShiftRight                        //右位移 >>
 	iunm  = func(a, _ int64) int64 { return -a }     //整数自取反 -x
 	funm  = func(a, _ float64) float64 { return -a } //浮点数自取反 -x
-	bnot  = func(a, _ int64) int64 { return ^a }     //位运算 自我异或 ^x
+	bnot  = func(a, _ int64) int64 { return ^a }     //条件 取反
 
 )
+
+//哪种类型 的操作
+type operator struct {
+	integerFunc func(int64, int64) int64
+	floatFunc   func(float64, float64) float64
+}
+
+//保持 和 const.go 运算符 的一致
+var operators = []operator{
+	operator{iadd, fadd},
+	operator{isub, fsub},
+	operator{imul, fmul},
+	operator{imod, fmod},
+	operator{nil, pow},
+	operator{nil, div},
+	operator{iidiv, fidiv},
+	operator{band, nil},
+	operator{bor, nil},
+	operator{bxor, nil},
+	operator{shl, nil},
+	operator{shr, nil},
+	operator{iunm, funm},
+	operator{bnot, nil},
+}

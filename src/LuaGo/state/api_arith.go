@@ -1,8 +1,10 @@
 package state
 
-import "math"
-//import . "LuaGo/api"
-import "LuaGo/number"
+import (
+	"LuaGo/number"
+	. "LuaGo/api"
+	"math"
+)
 
 //Arith 执行算数和按位运算
 //对于二元运算 弹出栈顶两个值 再压入运算结果
@@ -54,4 +56,45 @@ var operators = []operator{
 	operator{shr, nil},
 	operator{iunm, funm},
 	operator{bnot, nil},
+}
+
+func (self *luaState) Arith(op ArithOp) {
+	var a, b luaValue
+	b = self.stack.pop()
+	if op != LUA_OPUNM && op != LUA_OPBNOT {
+		a = self.stack.pop()
+	} else {
+		a = b
+	}
+
+	operator := operators[op]
+	if result := _arith(a, b, operator); result != nil {
+		self.stack.push(result)
+	} else {
+		panic("arithmetic error!") //这个操作必定有返回值
+	}
+}
+
+func _arith(a, b luaValue, op operator) luaValue {
+	if op.floatFunc == nil { //整数计算
+		if x, ok := convertToInteger(a); ok {
+			if y, ok := convertToInteger(a); ok {
+				return op.integerFunc(x, y)
+			}
+		}
+	} else {
+		if op.integerFunc != nil{ //add,sub,mul,mod,idiv,unm
+			if x, ok := a.(int64); ok {
+				if y, ok := b.(int64); ok {
+					return op.integerFunc(x, y)
+				}
+			}
+		}
+
+		if x, ok := convertToFloat(a); ok {
+			if y, ok := convertToFloat(b); ok {
+				return op.floatFunc(x, y)
+			}
+		}
+	}
 }

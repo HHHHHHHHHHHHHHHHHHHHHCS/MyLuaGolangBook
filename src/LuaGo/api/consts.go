@@ -27,7 +27,7 @@ const (
 	LUA_OPBXOR        // ~.
 	LUA_OPSHL         // <<
 	LUA_OPSHR         // >>
-	LUA_OPNUM         // - 自负数
+	LUA_OPUNM         // - 自负数
 	LUA_OPBNOT        // ~ 条件 取反
 
 )

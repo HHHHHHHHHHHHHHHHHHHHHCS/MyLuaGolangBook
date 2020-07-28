@@ -76,14 +76,14 @@ func (self *luaState) Arith(op ArithOp) {
 }
 
 func _arith(a, b luaValue, op operator) luaValue {
-	if op.floatFunc == nil { //整数计算
+	if op.floatFunc == nil { //按位计算的操作
 		if x, ok := convertToInteger(a); ok {
 			if y, ok := convertToInteger(a); ok {
 				return op.integerFunc(x, y)
 			}
 		}
 	} else {
-		if op.integerFunc != nil{ //add,sub,mul,mod,idiv,unm
+		if op.integerFunc != nil { //add,sub,mul,mod,idiv,unm
 			if x, ok := a.(int64); ok {
 				if y, ok := b.(int64); ok {
 					return op.integerFunc(x, y)
@@ -97,4 +97,7 @@ func _arith(a, b luaValue, op operator) luaValue {
 			}
 		}
 	}
+
+	//否则返回nil  错误
+	return nil
 }

@@ -87,7 +87,6 @@ func _lt(a, b luaValue) bool {
 }
 
 //a<=b
-
 func _le(a, b luaValue) bool {
 	switch x := a.(type) {
 	case string:

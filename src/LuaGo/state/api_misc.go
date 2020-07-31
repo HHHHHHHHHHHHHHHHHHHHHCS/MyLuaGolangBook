@@ -1,5 +1,6 @@
 package state
 
+
 //暂时只考虑 字符串的长度
 func (self *luaState) Len(idx int) {
 	val := self.stack.get(idx)

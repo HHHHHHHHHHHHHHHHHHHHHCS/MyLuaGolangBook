@@ -17,7 +17,16 @@ func (test *CH05Test) DoTest() {
 	ls.PushNumber(4.0)
 	test.printStack(ls)
 
-//TODO:
+	ls.Arith(LUA_OPADD)
+	test.printStack(ls)
+	ls.Arith(LUA_OPBNOT)
+	test.printStack(ls)
+	ls.Len(2)
+	test.printStack(ls)
+	ls.Concat(3)
+	test.printStack(ls)
+	ls.PushBoolean(ls.Compare(1,2,LUA_OPEQ))
+	test.printStack(ls)
 }
 
 func (test *CH05Test) printStack(ls LuaState) {

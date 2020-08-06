@@ -36,6 +36,7 @@ type LuaState interface {
 	ToStringX(idx int) (string, bool)
 	//压入栈 go->stacks
 	PushNil()
+	PushBoolean(b bool)
 	PushInteger(n int64)
 	PushNumber(n float64)
 	PushString(n string)

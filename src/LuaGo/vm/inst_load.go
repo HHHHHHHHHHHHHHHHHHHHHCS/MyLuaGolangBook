@@ -18,3 +18,15 @@ func loadNil(i Instruction, vm LuaVM) {
 	}
 	vm.Pop(1)
 }
+
+//把索引换成某个布尔值  如果布尔值!=0 则跳过下一个指令
+func loadBool(i Instruction, vm LuaVM) {
+	a, b, c := i.ABC()
+	a += 1
+	vm.PushBoolean(b != 0)
+	vm.Replace(a)
+	if c != 0 {
+		vm.AddPC(1)
+	}
+
+}

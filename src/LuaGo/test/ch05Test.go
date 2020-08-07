@@ -10,7 +10,7 @@ type CH05Test struct {
 }
 
 func (test *CH05Test) DoTest() {
-	ls := state.New()
+	ls := state.New(20, nil)
 	ls.PushInteger(1)
 	ls.PushString("2.0")
 	ls.PushString("3.0")
@@ -25,7 +25,7 @@ func (test *CH05Test) DoTest() {
 	test.printStack(ls)
 	ls.Concat(3)
 	test.printStack(ls)
-	ls.PushBoolean(ls.Compare(1,2,LUA_OPEQ))
+	ls.PushBoolean(ls.Compare(1, 2, LUA_OPEQ))
 	test.printStack(ls)
 }
 

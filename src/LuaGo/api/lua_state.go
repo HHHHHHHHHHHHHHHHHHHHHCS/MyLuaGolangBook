@@ -28,10 +28,14 @@ type LuaState interface {
 	IsInteger(idx int) bool
 	IsNumber(idx int) bool
 	IsString(idx int) bool
+	IsTable(idx int) bool
+	IsThread(idx int) bool
+	IsFunction(idx int) bool
 	ToBoolean(idx int) bool
 	ToInteger(idx int) int64
 	ToIntegerX(idx int) (int64, bool)
 	ToNumber(idx int) float64
+	ToNumberX(idx int) (float64, bool)
 	ToString(idx int) string
 	ToStringX(idx int) (string, bool)
 	//压入栈 go->stacks
@@ -39,5 +43,11 @@ type LuaState interface {
 	PushBoolean(b bool)
 	PushInteger(n int64)
 	PushNumber(n float64)
-	PushString(n string)
+	PushString(s string)
+	//执行算数和按位运算
+	Arith(op ArithOp)
+	Compare(idx1, idx2 int, op CompareOp) bool
+	//其他方法
+	Len(idx int)
+	Concat(n int)
 }

@@ -4,6 +4,10 @@ import . "LuaGo/api"
 
 //比较操作 选择栈里的两个位置进行比较 不会修改栈的状态
 func (self *luaState) Compare(idx1, idx2 int, op CompareOp) bool {
+	if !self.stack.isValid(idx1) || !self.stack.isValid(idx2) {
+		return false
+	}
+	
 	a := self.stack.get(idx1)
 	b := self.stack.get(idx2)
 

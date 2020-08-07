@@ -10,6 +10,14 @@ import (
 //对于二元运算 弹出栈顶两个值 再压入运算结果
 //对于一元运算 弹出栈顶一个值 在把结果压入
 
+//哪种类型 的操作
+
+type operator struct {
+	integerFunc func(int64, int64) int64
+	floatFunc   func(float64, float64) float64
+}
+
+
 var (
 	iadd  = func(a, b int64) int64 { return a + b }
 	fadd  = func(a, b float64) float64 { return a + b }
@@ -34,11 +42,6 @@ var (
 
 )
 
-//哪种类型 的操作
-type operator struct {
-	integerFunc func(int64, int64) int64
-	floatFunc   func(float64, float64) float64
-}
 
 //保持 和 const.go 运算符 的一致
 var operators = []operator{
@@ -78,7 +81,7 @@ func (self *luaState) Arith(op ArithOp) {
 func _arith(a, b luaValue, op operator) luaValue {
 	if op.floatFunc == nil { //按位计算的操作
 		if x, ok := convertToInteger(a); ok {
-			if y, ok := convertToInteger(a); ok {
+			if y, ok := convertToInteger(b); ok {
 				return op.integerFunc(x, y)
 			}
 		}

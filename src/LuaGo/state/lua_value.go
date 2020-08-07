@@ -7,7 +7,7 @@ import (
 
 type luaValue interface{}
 
-func typeof(val luaValue) LuaType {
+func typeOf(val luaValue) LuaType {
 	//x.(type) 只能在switch 中使用
 	switch val.(type) {
 	case nil:

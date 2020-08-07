@@ -35,7 +35,7 @@ func (self *luaState) TypeName(tp LuaType) string {
 func (self *luaState) Type(idx int) LuaType {
 	if self.stack.isValid(idx) {
 		val := self.stack.get(idx)
-		return typeof(val)
+		return typeOf(val)
 	}
 	return LUA_TNONE
 }
@@ -56,6 +56,23 @@ func (self *luaState) IsBoolean(idx int) bool {
 	return self.Type(idx) == LUA_TBOOLEAN
 }
 
+// [-0, +0, –]
+// http://www.lua.org/manual/5.3/manual.html#lua_istable
+func (self *luaState) IsTable(idx int) bool {
+	return self.Type(idx) == LUA_TTABLE
+}
+
+// [-0, +0, –]
+// http://www.lua.org/manual/5.3/manual.html#lua_isfunction
+func (self *luaState) IsFunction(idx int) bool {
+	return self.Type(idx) == LUA_TFUNCTION
+}
+
+// [-0, +0, –]
+// http://www.lua.org/manual/5.3/manual.html#lua_isthread
+func (self *luaState) IsThread(idx int) bool {
+	return self.Type(idx) == LUA_TTHREAD
+}
 //索引处的值是否是字符串  数字可以解析为字符串
 func (self *luaState) IsString(idx int) bool {
 	t := self.Type(idx)
@@ -70,7 +87,9 @@ func (self *luaState) IsNumber(idx int) bool {
 
 //todo:
 func (self *luaState) IsInteger(idx int) bool {
-	return self.Type(idx) == LUA_TNUMBER
+	val := self.stack.get(idx)
+	_, ok := val.(int64)
+	return ok
 }
 
 //取出一个指 如果不是布尔值 则进行转换

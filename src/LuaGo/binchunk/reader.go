@@ -152,7 +152,7 @@ func (self *reader) readConstant() interface{} {
 	case TAG_LONG_STR:
 		return self.readString()
 	default:
-		panic("corrupted")
+		panic("corrupted!")
 	}
 }
 

@@ -18,7 +18,9 @@ func (self *luaState) CheckStack(n int) bool {
 
 //栈顶弹出N个值
 func (self *luaState) Pop(n int) {
-	self.SetTop(-n - 1)
+	for i := 0; i < n; i++ {
+		self.stack.pop()
+	}
 }
 
 //把拷贝某个值到某个地方

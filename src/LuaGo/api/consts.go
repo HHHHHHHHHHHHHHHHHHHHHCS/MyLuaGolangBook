@@ -24,7 +24,7 @@ const (
 	LUA_OPIDIV        // // 整除
 	LUA_OPBAND        // &
 	LUA_OPBOR         // |
-	LUA_OPBXOR        // ~.
+	LUA_OPBXOR        // ~ 异或
 	LUA_OPSHL         // <<
 	LUA_OPSHR         // >>
 	LUA_OPUNM         // - 自负数

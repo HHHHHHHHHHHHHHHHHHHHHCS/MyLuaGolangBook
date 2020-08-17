@@ -3,6 +3,6 @@ package main
 import "LuaGo/test"
 
 func main() {
-	t := new(test.CH05Test)
+	t := new(test.CH03Test)
 	t.DoTest()
 }

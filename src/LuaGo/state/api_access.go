@@ -85,7 +85,6 @@ func (self *luaState) IsNumber(idx int) bool {
 	return ok
 }
 
-//todo:
 func (self *luaState) IsInteger(idx int) bool {
 	val := self.stack.get(idx)
 	_, ok := val.(int64)

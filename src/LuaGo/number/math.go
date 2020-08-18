@@ -27,6 +27,13 @@ func IMod(a, b int64) int64 {
 
 //取模 整除模拟
 func FMod(a, b float64) float64 {
+	//math.IsInf 是正负无穷
+	if a > 0 && math.IsInf(b, 1) || a < 0 && math.IsInf(b, -1) {
+		return a
+	}
+	if a > 0 && math.IsInf(b, -1) || a < 0 && math.IsInf(b, 1) {
+		return b
+	}
 	return a - math.Floor(a/b)*b
 }
 

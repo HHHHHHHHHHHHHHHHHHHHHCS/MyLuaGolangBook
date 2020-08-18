@@ -41,8 +41,8 @@ func (self Instruction) ABx() (a, bx int) {
 }
 
 //iAsBx
-func (self Instruction) AsBx() (a, bx int) {
-	a, bx = self.ABx()
+func (self Instruction) AsBx() (a, sbx int) {
+	a, bx := self.ABx()
 	return a, bx - MAXARG_sBx
 }
 

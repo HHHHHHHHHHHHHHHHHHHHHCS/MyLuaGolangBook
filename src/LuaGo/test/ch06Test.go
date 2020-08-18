@@ -1,19 +1,19 @@
 package test
 
 import (
+	. "LuaGo/api"
 	"LuaGo/binchunk"
 	"LuaGo/state"
 	. "LuaGo/vm"
-	. "LuaGo/api"
 	"fmt"
 	"io/ioutil"
-	"os"
 )
 
 type CH06Test struct {
 }
 
-func (test *CH06Test) DoMain() {
+func (test *CH06Test) DoTest() {
+	/*
 	if len(os.Args) > 1 {
 		data, err := ioutil.ReadFile(os.Args[1])
 		if err != nil {
@@ -22,6 +22,13 @@ func (test *CH06Test) DoMain() {
 		proto := binchunk.Undump(data)
 		test.luaMain(proto)
 	}
+	*/
+		data, err := ioutil.ReadFile("src/CH00_Luac/CH06Test.luac")
+		if err != nil {
+			panic(err)
+		}
+		proto := binchunk.Undump(data)
+		test.luaMain(proto)
 }
 
 func (test *CH06Test) luaMain(proto *binchunk.Prototype) {

@@ -2,6 +2,7 @@ package vm
 
 import . "LuaGo/api"
 
+//todo:
 //循环相关的指令
 
 //预先让  currentIndex-=step

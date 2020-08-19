@@ -2,7 +2,6 @@ package vm
 
 import . "LuaGo/api"
 
-//todo:
 //循环相关的指令
 
 //预先让  currentIndex-=step
@@ -11,6 +10,18 @@ func forPrep(i Instruction, vm LuaVM) {
 	a += 1
 
 	//计算index
+	if vm.Type(a) == LUA_TSTRING {
+		vm.PushNumber(vm.ToNumber(a))
+		vm.Replace(a)
+	}
+	if vm.Type(a+1) == LUA_TSTRING {
+		vm.PushNumber(vm.ToNumber(a + 1))
+		vm.Replace(a + 1)
+	}
+	if vm.Type(a+2) == LUA_TSTRING {
+		vm.PushNumber(vm.ToNumber(a + 2))
+		vm.Replace(a + 2)
+	}
 
 	vm.PushValue(a)
 	vm.PushValue(a + 2)

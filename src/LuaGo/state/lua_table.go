@@ -20,10 +20,19 @@ func newLuaTable(nArr, nRec int) *luaTable {
 	return t
 }
 
+//从map get value    如果key可以转换为int 则尝试
+//go起始位置是0   lua起始位置是1
 func (self *luaTable) get(key luaValue) luaValue {
 	key = _floatToInteger(key)
+	if idx, ok := key.(int64); ok {
+		if idx >= 1 && idx <= int64(len(self.arr)) {
+			return self.arr[idx-1]
+		}
+	}
+	return self._map[key]
 }
 
+//key float 尝试转换 int
 func _floatToInteger(key luaValue) luaValue {
 	if f, ok := key.(float64); ok {
 		if i, ok := number.FloatToInteger(f); ok {
@@ -31,4 +40,42 @@ func _floatToInteger(key luaValue) luaValue {
 		}
 	}
 	return key
+}
+
+func (self *luaTable) put(key, val luaValue) {
+	//不能是nil
+	if key == nil {
+		panic("table index is nil!")
+	}
+	// 如果是float 就不能是nan
+	if f, ok := key.(float64); ok && math.IsNaN(f) {
+		panic("table index is Nan!")
+	}
+	key = _floatToInteger(key)
+	if idx, ok := key.(int64); ok && idx >= 1 {
+		arrLen := int64(len(self.arr))
+		if idx <= arrLen {
+			if idx == arrLen && val == nil {
+				self._ //TODO:
+			}
+			return
+		}
+		//超出范围
+		if idx == arrLen+1 {
+			//尝试删除    因为key 之前可能非序号的形式存入  现在是序号模式  所以要先删除
+			delete(self._map, key)
+			if val != nil {
+				self.arr = append(self.arr, val)
+				self._exp //TODO:
+			}
+			return
+		}
+	}
+	if val != nil {
+		if self._map == nil {
+			self._map = make(map[luaValue]luaValue, 8)
+		} else {
+			delete(self._map, key)
+		}
+	}
 }

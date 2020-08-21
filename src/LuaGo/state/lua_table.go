@@ -51,31 +51,64 @@ func (self *luaTable) put(key, val luaValue) {
 	if f, ok := key.(float64); ok && math.IsNaN(f) {
 		panic("table index is Nan!")
 	}
+
+	//如果可以转换为int  即尝试用index序号
 	key = _floatToInteger(key)
 	if idx, ok := key.(int64); ok && idx >= 1 {
+		//如果在数组范围的内
 		arrLen := int64(len(self.arr))
 		if idx <= arrLen {
+			//go lua  数组起点
+			self.arr[idx-1] = val
 			if idx == arrLen && val == nil {
-				self._ //TODO:
+				//删除末尾的nil
+				self._shrinkArray()
 			}
 			return
 		}
-		//超出范围
+		//超出 范围+1 直接是追加到数组
 		if idx == arrLen+1 {
-			//尝试删除    因为key 之前可能非序号的形式存入  现在是序号模式  所以要先删除
+			//尝试删除  从字典删除   因为序号之前可以当作key 加入到字典
 			delete(self._map, key)
 			if val != nil {
 				self.arr = append(self.arr, val)
-				self._exp //TODO:
+				self._expandArray()
 			}
 			return
 		}
 	}
+
+	//序号不是超出数组范围  序号不是整数 等 存入字典
 	if val != nil {
 		if self._map == nil {
 			self._map = make(map[luaValue]luaValue, 8)
-		} else {
-			delete(self._map, key)
+		}
+		self._map[key] = val
+	} else {
+		delete(self._map, key)
+	}
+}
+
+//可能存在切片错误的问题
+func (self *luaTable) _shrinkArray() {
+	for i := len(self.arr) - 1; i >= 0; i-- {
+		if self.arr[i] == nil {
+			self.arr = self.arr[0:i]
 		}
 	}
+}
+
+func (self *luaTable) _expandArray() {
+	for idx := int64(len(self.arr)) + 1; true; idx++ {
+		if val, found := self._map[idx]; found {
+			delete(self._map, idx)
+			self.arr = append(self.arr, val)
+		} else {
+			break
+		}
+	}
+}
+
+func (self *luaTable) len() int {
+	return len(self.arr)
 }

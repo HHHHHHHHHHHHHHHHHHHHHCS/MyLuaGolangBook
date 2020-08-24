@@ -1,7 +1,7 @@
 package state
 
 type luaStack struct {
-	slots []luaValue //存放值
+	slots []luaValue //栈存放值
 	top   int        //栈顶索引
 }
 

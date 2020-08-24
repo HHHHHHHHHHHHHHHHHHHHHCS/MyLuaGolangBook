@@ -50,4 +50,12 @@ type LuaState interface {
 	//其他方法
 	Len(idx int)
 	Concat(n int)
+	//Table
+	CreateTable(nArr, nRec int)
+	GetTable(idx int)
+	GetField(idx int, k string) LuaType
+	GetI(idx int, i int64) LuaType
+	SetTable(idx int)
+	SetField(idx int, k string)
+	SetI(idx int, n int64)
 }

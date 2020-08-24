@@ -112,3 +112,4 @@ func (self *luaTable) _expandArray() {
 func (self *luaTable) len() int {
 	return len(self.arr)
 }
+

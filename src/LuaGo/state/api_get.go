@@ -81,3 +81,27 @@ func newTable(i Instruction,vm LuaVM){
 	vm.CreateTable(Fb2int(b),Fb2int(c))
 	vm.Replace(a)
 }
+
+//获取常量index c 的值 放入栈顶
+//获取table b  和 栈顶的索引
+//得到value 放到栈位置 a
+func getTable(i Instruction,vm LuaVM){
+	a,b,c :=i.ABC()
+	a+=1
+	b+=1
+	vm.GetRK(c)
+	vm.GetTable(b)
+	vm.Replace(a)
+}
+
+// b 索引  c val 放入栈顶
+// 查找table a
+// 设置值
+func setTable(i Instruction,vm LuaVM){
+	a,b,c := i.ABC()
+	a+=1
+
+	vm.GetRK(b)
+	vm.GetRK(c)
+	vm.SetTable(a)
+}

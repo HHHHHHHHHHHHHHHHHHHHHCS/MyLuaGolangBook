@@ -52,7 +52,7 @@ type LuaState interface {
 	Concat(n int)
 	//Table
 	CreateTable(nArr, nRec int)
-	GetTable(idx int)
+	GetTable(idx int) LuaType
 	GetField(idx int, k string) LuaType
 	GetI(idx int, i int64) LuaType
 	SetTable(idx int)

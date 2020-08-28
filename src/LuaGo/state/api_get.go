@@ -2,7 +2,6 @@ package state
 
 import (
 	. "LuaGo/api"
-	. "LuaGo/vm"
 )
 
 func (self *luaState) CreateTable(nArr, nRec int) {
@@ -19,16 +18,6 @@ func (self *luaState) GetTable(idx int) LuaType {
 	t := self.stack.get(idx)
 	k := self.stack.pop()
 	return self.getTable(t, k)
-}
-
-//t 是 table  get(index)的value  把值放入栈顶  返回val.(typeOf)
-func (self *luaState) getTable(t, k luaValue) LuaType {
-	if tbl, ok := t.(*luaTable); ok {
-		v := tbl.get(k)
-		self.stack.push(v)
-		return typeOf(v)
-	}
-	panic("not a table!")
 }
 
 //查找表  查找key得到value  通过 idx 得到表    k 是key 可能会自动转换为int 去查找
@@ -74,34 +63,13 @@ func (self *luaState) SetI(idx int, i int64) {
 	self.setTable(t, i, v)
 }
 
-func newTable(i Instruction,vm LuaVM){
-	a,b,c :=i.ABC()
-	a+=1
 
-	vm.CreateTable(Fb2int(b),Fb2int(c))
-	vm.Replace(a)
-}
-
-//获取常量index c 的值 放入栈顶
-//获取table b  和 栈顶的索引
-//得到value 放到栈位置 a
-func getTable(i Instruction,vm LuaVM){
-	a,b,c :=i.ABC()
-	a+=1
-	b+=1
-	vm.GetRK(c)
-	vm.GetTable(b)
-	vm.Replace(a)
-}
-
-// b 索引  c val 放入栈顶
-// 查找table a
-// 设置值
-func setTable(i Instruction,vm LuaVM){
-	a,b,c := i.ABC()
-	a+=1
-
-	vm.GetRK(b)
-	vm.GetRK(c)
-	vm.SetTable(a)
+//t 是 table  get(index)的value  把值放入栈顶  返回val.(typeOf)
+func (self *luaState) getTable(t, k luaValue) LuaType {
+	if tbl, ok := t.(*luaTable); ok {
+		v := tbl.get(k)
+		self.stack.push(v)
+		return typeOf(v)
+	}
+	panic("not a table!")
 }

@@ -15,8 +15,8 @@ func newTable(i Instruction, vm LuaVM) {
 }
 
 //获取常量index c 的值 放入栈顶
-//获取table b  和 栈顶的索引
-//得到value 放到栈位置 a
+//获取table b  和 栈顶的当作table索引
+//得到 放到栈位置 a
 func getTable(i Instruction, vm LuaVM) {
 	a, b, c := i.ABC()
 	a += 1

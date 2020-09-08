@@ -10,7 +10,7 @@ type CH04Test struct {
 }
 
 func (test *CH04Test) DoTest() {
-	ls := state.New(20,nil)
+	ls := state.New(state.DefaultStackSize)
 	ls.PushBoolean(true)
 	test.printStack(ls)
 	ls.PushInteger(10)

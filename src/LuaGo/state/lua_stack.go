@@ -89,3 +89,29 @@ func (self *luaStack) reverse(from, to int) {
 		to--
 	}
 }
+
+//一次性弹出N个值
+func (self *luaStack) popN(n int) []luaValue {
+	vals := make([]luaValue, n)
+	for i := n - 1; i >= 0; i-- {
+		vals[i] = self.pop()
+	}
+	return vals
+}
+
+
+//推入N个数值
+func (self *luaStack) pushN(vals []luaValue, n int) {
+	nVals := len(vals)
+	if n < 0 {
+		n = nVals
+	}
+	for i := 0; i < n; i++ {
+		if i < nVals {
+			self.push(vals[i])
+		} else {
+			self.push(nil)
+		}
+
+	}
+}

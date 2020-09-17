@@ -33,5 +33,6 @@ func (self *luaState) GetRK(rk int) {
 		//但是luaAPI 的栈是从1开始的 使用的时候要加一
 		self.PushValue(rk + 1)
 	}
-
 }
+
+//TODO:

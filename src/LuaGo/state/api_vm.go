@@ -35,4 +35,24 @@ func (self *luaState) GetRK(rk int) {
 	}
 }
 
-//TODO:
+//获取寄存器数量
+func (self *luaState) RegisterCount() int {
+	return int(self.stack.closure.proto.MaxStackSize)
+}
+
+//读取可变参数 放入栈顶
+func (self *luaState) LoadVararg(n int) {
+	if n < 0 {
+		n = len(self.stack.varargs)
+	}
+
+	self.stack.check(n)
+	self.stack.pushN(self.stack.varargs, n)
+}
+
+//获取函数原型 生成闭包
+func (self *luaState) LoadProto(idx int) {
+	proto := self.stack.closure.proto.Protos[idx]
+	closure := newLuaClosure(proto)
+	self.stack.push(closure)
+}

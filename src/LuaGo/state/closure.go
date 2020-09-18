@@ -10,5 +10,3 @@ type closure struct {
 func newLuaClosure(proto *binchunk.Prototype) *closure {
 	return &closure{proto: proto}
 }
-
-

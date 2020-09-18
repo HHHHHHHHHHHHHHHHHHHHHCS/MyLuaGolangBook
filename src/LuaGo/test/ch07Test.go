@@ -14,40 +14,40 @@ type CH07Test struct {
 
 func (test *CH07Test) DoTest() {
 	/*
-	if len(os.Args) > 1 {
-		data, err := ioutil.ReadFile(os.Args[1])
-		if err != nil {
-			panic(err)
+		if len(os.Args) > 1 {
+			data, err := ioutil.ReadFile(os.Args[1])
+			if err != nil {
+				panic(err)
+			}
+			proto := binchunk.Undump(data)
+			test.luaMain(proto)
 		}
-		proto := binchunk.Undump(data)
-		test.luaMain(proto)
-	}
 	*/
-		data, err := ioutil.ReadFile("src/CH00_Luac/CH07Test.luac")
-		if err != nil {
-			panic(err)
-		}
-		proto := binchunk.Undump(data)
-		test.luaMain(proto)
+	data, err := ioutil.ReadFile("src/CH00_Luac/CH07Test.luac")
+	if err != nil {
+		panic(err)
+	}
+	proto := binchunk.Undump(data)
+	test.luaMain(data, proto)
 }
 
-func (test *CH07Test) luaMain(proto *binchunk.Prototype) {
+func (test *CH07Test) luaMain(data []byte, proto *binchunk.Prototype) {
 	nRegs := int(proto.MaxStackSize)
-	ls := state.New(nRegs+8, proto)
+	ls := state.New()
+	ls.Load(data, "src/CH00_Luac/CH07Test.luac", "b")
 	ls.SetTop(nRegs)
 	for {
 		pc := ls.PC()
 		inst := Instruction(ls.Fetch())
 		if inst.Opcode() != OP_RETURN {
 			inst.Execute(ls)
-			fmt.Printf("[%02d] %s",pc+1,inst.OpName())
+			fmt.Printf("[%02d] %s", pc+1, inst.OpName())
 			test.printStack(ls)
 		} else {
 			break
 		}
 	}
 }
-
 
 func (test *CH07Test) printStack(ls LuaState) {
 	top := ls.GetTop()

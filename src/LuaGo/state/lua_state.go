@@ -7,9 +7,9 @@ type luaState struct {
 var DefaultStackSize int = 20
 
 //Lua栈初始容量
-func New(stackSize int) *luaState {
+func New() *luaState {
 	return &luaState{
-		stack: newLuaStack(stackSize),
+		stack: newLuaStack(DefaultStackSize),
 	}
 }
 

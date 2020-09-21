@@ -89,6 +89,7 @@ func tailCall(i Instruction, vm LuaVM) {
 	a += 1
 	c := 0
 
+	// todo: optimize tail call!
 	nArgs := _pushFuncAndArgs(a, b, vm)
 	vm.Call(nArgs, c-1)
 	_popResults(a, c, vm)

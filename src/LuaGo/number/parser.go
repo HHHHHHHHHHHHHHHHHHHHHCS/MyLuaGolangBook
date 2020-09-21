@@ -2,8 +2,6 @@ package number
 
 import "strconv"
 
-//TODO:
-
 //转换成整数
 func ParseInteger(str string) (int64, bool) {
 	//string  进制  位数(比如int32 int64

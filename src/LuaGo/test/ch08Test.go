@@ -18,4 +18,3 @@ func (test *CH08Test) DoTest() {
 	ls.Call(0, 0)
 }
 
-//TODO:

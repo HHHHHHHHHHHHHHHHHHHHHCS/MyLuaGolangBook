@@ -4,6 +4,8 @@ type LuaType = int
 type ArithOp = int
 type CompareOp = int
 
+type GoFunction func(LuaState) int
+
 //栈基础操作函数
 type LuaState interface {
 	//基础栈操作
@@ -61,4 +63,8 @@ type LuaState interface {
 	//Function
 	Load(chunk []byte, chunkName, mode string) int
 	Call(nArgs, nResults int)
+	PushGoFunction(f GoFunction)
+	IsGoFunction(idx int) bool
+	ToGoFunction(idx int) GoFunction
 }
+

@@ -73,6 +73,7 @@ func (self *luaState) IsFunction(idx int) bool {
 func (self *luaState) IsThread(idx int) bool {
 	return self.Type(idx) == LUA_TTHREAD
 }
+
 //索引处的值是否是字符串  数字可以解析为字符串
 func (self *luaState) IsString(idx int) bool {
 	t := self.Type(idx)
@@ -141,3 +142,24 @@ func (self *luaState) ToStringX(idx int) (string, bool) {
 		return "", false
 	}
 }
+
+//检测是否是go闭包 拿到变量 是否是闭包 是否不为nil
+func (self *luaState) IsGoFunction(idx int) bool {
+	val := self.stack.get(idx)
+	if c, ok := val.(*closure); ok {
+		return c.goFunc != nil
+	}
+	return false
+}
+
+//从栈中返回goFunc
+func (self *luaState) ToGoFunction(idx int) GoFunction{
+	val:=self.stack.get(idx)
+	if c,ok:=val.(*closure);ok{
+		return c.goFunc
+	}
+	return nil
+}
+
+
+

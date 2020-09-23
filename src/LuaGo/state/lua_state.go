@@ -1,16 +1,22 @@
 package state
 
+import . "LuaGo/api"
+
 type luaState struct {
-	stack *luaStack
+	registry *luaTable //注册表
+	stack    *luaStack
 }
 
-var DefaultStackSize int = 20
 
 //Lua栈初始容量
 func New() *luaState {
-	return &luaState{
-		stack: newLuaStack(DefaultStackSize),
-	}
+	registry := newLuaTable(0, 0)
+	//每个lua解释器都有自己的注册表
+	registry.put(LUA_RIDX_GLOBALS, newLuaTable(0, 0)) //全局变量
+
+	ls := &luaState{registry: registry}
+	ls.pushLuaStack(newLuaStack(LUA_MINSTACK, ls))
+	return ls
 }
 
 func (self *luaState) pushLuaStack(stack *luaStack) {

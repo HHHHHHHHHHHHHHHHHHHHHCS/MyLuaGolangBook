@@ -1,5 +1,10 @@
 package api
 
+const LUA_MINSTACK = 20       //最小栈长度
+const LUAI_MAXSTACK = 1000000 //最大栈长度
+const LUA_REGISTRYINDEX = -LUAI_MAXSTACK - 1000
+const LUA_RIDX_GLOBALS int64 = 2 //全局环境注册表里面的索引
+
 const (
 	LUA_TNONE = iota - 1 //-1 无效索引值
 	LUA_TNIL

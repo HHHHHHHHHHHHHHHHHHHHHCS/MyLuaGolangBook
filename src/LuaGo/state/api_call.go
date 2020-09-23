@@ -1,9 +1,9 @@
 package state
 
 import (
+	. "LuaGo/api"
 	"LuaGo/binchunk"
 	"LuaGo/vm"
-	"fmt"
 )
 
 //mode "b" 二进制 "t" 文本 "bt" 二进制或者文本
@@ -20,9 +20,12 @@ func (self *luaState) Load(chunk []byte, chunkName, mode string) int {
 func (self *luaState) Call(nArgs, nResults int) {
 	val := self.stack.get(-(nArgs + 1))
 	if c, ok := val.(*closure); ok {
-		fmt.Printf("call %s<%d,%d>\n", c.proto.Source,
-			c.proto.LineDefined, c.proto.LastLineDefined)
-		self.callLuaClosure(nArgs, nResults, c)
+		//如果有proto 则是lua方法 否则是gofangfa
+		if c.proto != nil {
+			self.callLuaClosure(nArgs, nResults, c)
+		} else {
+			self.callGoClosure(nArgs, nResults, c)
+		}
 	} else {
 		panic("not function!")
 	}
@@ -33,7 +36,7 @@ func (self *luaState) callLuaClosure(nArgs, nResults int, c *closure) {
 	nParams := int(c.proto.NumParams)
 	isVararg := c.proto.IsVararg == 1
 
-	newStack := newLuaStack(nRegs + 20)
+	newStack := newLuaStack(nRegs + LUA_MINSTACK)
 	newStack.closure = c
 
 	//把参数写入新的栈   并且 写入可变参数
@@ -67,3 +70,21 @@ func (self *luaState) runLuaClosure() {
 	}
 }
 
+func (self *luaState) callGoClosure(nArgs, nResults int, c *closure) {
+	newStack := newLuaStack(nArgs + LUA_MINSTACK)
+	newStack.closure = c
+
+	args := self.stack.popN(nArgs)
+	newStack.pushN(args, nArgs)
+	self.stack.pop()
+
+	self.pushLuaStack(newStack)
+	r := c.goFunc(self)
+	self.popLuaStack()
+
+	if nResults != 0 {
+		results := newStack.popN(r)
+		self.stack.check(len(results))
+		self.stack.pushN(results, nResults)
+	}
+}

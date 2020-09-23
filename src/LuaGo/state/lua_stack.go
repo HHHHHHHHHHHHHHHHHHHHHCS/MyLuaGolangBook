@@ -14,6 +14,7 @@ func newLuaStack(size int) *luaStack {
 	return &luaStack{
 		slots: make([]luaValue, size),
 		top:   0,
+		//TODO:
 	}
 }
 

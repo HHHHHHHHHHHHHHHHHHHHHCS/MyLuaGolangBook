@@ -32,38 +32,6 @@ func (self *luaState) GetI(idx int, i int64) LuaType {
 	return self.getTable(t, i)
 }
 
-//查找idx 的表  栈顶弹出两个值当作 k,v  存入表
-func (self *luaState) SetTable(idx int) {
-	t := self.stack.get(idx)
-	v := self.stack.pop()
-	k := self.stack.pop()
-	self.setTable(t, k, v)
-}
-
-//存入表数据
-func (self *luaState) setTable(t, k, v luaValue) {
-	if tbl, ok := t.(*luaTable); ok {
-		tbl.put(k, v)
-		return
-	}
-	panic("not a table")
-}
-
-//存入表key位置(string) 数据
-func (self *luaState) SetField(idx int, k string) {
-	t := self.stack.get(idx)
-	v := self.stack.pop()
-	self.setTable(t, k, v)
-}
-
-//存入表key位置(int) 数据
-func (self *luaState) SetI(idx int, i int64) {
-	t := self.stack.get(idx)
-	v := self.stack.pop()
-	self.setTable(t, i, v)
-}
-
-
 //t 是 table  get(index)的value  把值放入栈顶  返回val.(typeOf)
 func (self *luaState) getTable(t, k luaValue) LuaType {
 	if tbl, ok := t.(*luaTable); ok {

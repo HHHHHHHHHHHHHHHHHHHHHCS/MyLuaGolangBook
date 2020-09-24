@@ -6,7 +6,6 @@ type CompareOp = int
 
 type GoFunction func(LuaState) int
 
-
 //栈基础操作函数
 type LuaState interface {
 	//基础栈操作
@@ -67,4 +66,9 @@ type LuaState interface {
 	PushGoFunction(f GoFunction)
 	IsGoFunction(idx int) bool
 	ToGoFunction(idx int) GoFunction
+	//注册表用
+	PushGlobalTable()
+	GetGlobal(name string) LuaType
+	SetGlobal(name string)
+	Register(name string, f GoFunction)
 }

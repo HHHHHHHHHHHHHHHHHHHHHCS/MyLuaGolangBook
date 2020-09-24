@@ -1,5 +1,7 @@
 package state
 
+import . "LuaGo/api"
+
 type luaStack struct {
 	slots   []luaValue //栈存放值
 	top     int        //栈顶索引
@@ -7,14 +9,15 @@ type luaStack struct {
 	closure *closure   //闭包
 	varargs []luaValue //实现变长参数
 	pc      int        //内部指令
+	state   *luaState  //虚拟机
 }
 
 //创建指定长度的lua stack
-func newLuaStack(size int) *luaStack {
+func newLuaStack(size int, state *luaState) *luaStack {
 	return &luaStack{
 		slots: make([]luaValue, size),
 		top:   0,
-		//TODO:
+		state: state,
 	}
 }
 
@@ -50,6 +53,10 @@ func (self *luaStack) pop() luaValue {
 
 //把索引转换成绝对索引
 func (self *luaStack) absIndex(idx int) int {
+	//超出栈范围了
+	if idx <= LUA_REGISTRYINDEX {
+		return idx
+	}
 	if idx >= 0 {
 		return idx
 	}
@@ -58,12 +65,20 @@ func (self *luaStack) absIndex(idx int) int {
 
 //索引是否有效  lua index起始位置1  最大 top
 func (self *luaStack) isValid(idx int) bool {
+	//等于伪索引认定为有效索引
+	if idx == LUA_REGISTRYINDEX {
+		return true
+	}
 	absIdx := self.absIndex(idx)
 	return absIdx > 0 && absIdx <= self.top
 }
 
 //从栈中取出某个index  go是0开始
 func (self *luaStack) get(idx int) luaValue {
+	//如果是伪装索引 则返回注册表
+	if idx == LUA_REGISTRYINDEX {
+		return self.state.registry
+	}
 	absIdx := self.absIndex(idx)
 	if absIdx > 0 && absIdx <= self.top {
 		return self.slots[absIdx-1]
@@ -73,6 +88,11 @@ func (self *luaStack) get(idx int) luaValue {
 
 //往栈里写入某个值  索引无效则panic
 func (self *luaStack) set(idx int, val luaValue) {
+	if idx == LUA_REGISTRYINDEX {
+		self.state.registry = val.(*luaTable)
+		return
+	}
+
 	absIdx := self.absIndex(idx)
 	if absIdx > 0 && absIdx <= self.top {
 		self.slots[absIdx-1] = val
@@ -99,7 +119,6 @@ func (self *luaStack) popN(n int) []luaValue {
 	}
 	return vals
 }
-
 
 //推入N个数值
 func (self *luaStack) pushN(vals []luaValue, n int) {

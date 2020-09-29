@@ -1,8 +1,8 @@
 package main
 
-import "LuaGo/test"
+import . "LuaGo/test"
 
 func main() {
-	t := new(test.CH08Test)
+	t := new(CH09Test)
 	t.DoTest()
 }

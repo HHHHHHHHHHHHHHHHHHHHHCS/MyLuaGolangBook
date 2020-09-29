@@ -36,7 +36,7 @@ func (self *luaState) callLuaClosure(nArgs, nResults int, c *closure) {
 	nParams := int(c.proto.NumParams)
 	isVararg := c.proto.IsVararg == 1
 
-	newStack := newLuaStack(nRegs + LUA_MINSTACK)
+	newStack := newLuaStack(nRegs+LUA_MINSTACK, self)
 	newStack.closure = c
 
 	//把参数写入新的栈   并且 写入可变参数
@@ -71,7 +71,7 @@ func (self *luaState) runLuaClosure() {
 }
 
 func (self *luaState) callGoClosure(nArgs, nResults int, c *closure) {
-	newStack := newLuaStack(nArgs + LUA_MINSTACK)
+	newStack := newLuaStack(nArgs+LUA_MINSTACK, self)
 	newStack.closure = c
 
 	args := self.stack.popN(nArgs)

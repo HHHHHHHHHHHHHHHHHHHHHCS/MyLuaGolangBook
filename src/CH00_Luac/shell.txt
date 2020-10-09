@@ -6,4 +6,5 @@ luac53 -p .\HelloWorld.lua  #只进行语法检测
 lua53 .\HelloWorld.lua #执行lua 预编译不会加快脚本速度 但是可以加快加载速度
 
 luac53 -l .\luac.out #可以进行反编译
+#反编译的upvalues 第一行是序号0递增 第二行upvalue的名字 第三行是否直接捕捉外围的局部变量1是0否 第四行在外部函数栈里的索引
 luac53 -l -l .\luac.out #可以进行更详细的反编译

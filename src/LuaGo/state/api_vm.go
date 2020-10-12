@@ -50,9 +50,17 @@ func (self *luaState) LoadVararg(n int) {
 	self.stack.pushN(self.stack.varargs, n)
 }
 
-//获取函数原型 生成闭包
+//获取函数原型(子函数) 生成闭包
 func (self *luaState) LoadProto(idx int) {
-	proto := self.stack.closure.proto.Protos[idx]
-	closure := newLuaClosure(proto)
+	stack := self.stack
+	subProto := stack.closure.proto.Protos[idx]
+	closure := newLuaClosure(subProto)
 	self.stack.push(closure)
+	for i,uvInfo:=range subProto.Upvalues{
+		uvIdx :=int(uvInfo.Idx)
+		if uvInfo.Instack == 1{
+			//TODO:
+			if(stack.)
+		}
+	}
 }

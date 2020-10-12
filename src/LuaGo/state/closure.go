@@ -2,19 +2,33 @@ package state
 
 import (
 	. "LuaGo/api"
-	"LuaGo/binchunk"
+	. "LuaGo/binchunk"
 )
+
+type upvalue struct {
+	val *luaValue
+}
 
 //closure 闭包
 type closure struct {
-	proto  *binchunk.Prototype //lua closure
-	goFunc GoFunction          //go closure
+	proto  *Prototype //lua closure
+	goFunc GoFunction //go closure
+	upvals []*upvalue
 }
 
-func newLuaClosure(proto *binchunk.Prototype) *closure {
-	return &closure{proto: proto}
+func newLuaClosure(proto *Prototype) *closure {
+	c := &closure{proto: proto}
+	if nUpvals := len(proto.Upvalues); nUpvals > 0 {
+		c.upvals = make([]*upvalue, nUpvals)
+	}
+	return c
 }
 
-func newGoClosure(f GoFunction) *closure {
-	return &closure{goFunc: f}
+//go的需要指明闭包的upvalues的数量
+func newGoClosure(f GoFunction, nUpvals int) *closure {
+	c := &closure{goFunc: f}
+	if nUpvals > 0 {
+		c.upvals = make([]*upvalue, nUpvals)
+	}
+	return c
 }

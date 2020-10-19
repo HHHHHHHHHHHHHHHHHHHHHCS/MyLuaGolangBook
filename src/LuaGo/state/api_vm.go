@@ -56,11 +56,25 @@ func (self *luaState) LoadProto(idx int) {
 	subProto := stack.closure.proto.Protos[idx]
 	closure := newLuaClosure(subProto)
 	self.stack.push(closure)
-	for i,uvInfo:=range subProto.Upvalues{
-		uvIdx :=int(uvInfo.Idx)
-		if uvInfo.Instack == 1{
-			//TODO:
-			if(stack.)
+	for i, uvInfo := range subProto.Upvalues {
+		uvIdx := int(uvInfo.Idx)
+		//Instack == 1  如果是局部变量
+		if uvInfo.Instack == 1 {
+			//只用访问当前函数的局部变量
+			if stack.openuvs == nil {
+				stack.openuvs = map[int]*upvalue{}
+			}
+			//如果还在缓存上(OPEN状态) 直接获取
+			if openuv, found := stack.openuvs[uvIdx]; found {
+				closure.upvals[i] = openuv
+			} else {
+				//在其他地方(CLOSE状态) 从栈上获取
+				closure.upvals[i] = &upvalue{&stack.slots[uvIdx]}
+				stack.openuvs[uvIdx] = closure.upvals[i]
+			}
+		} else {
+			//如果是外部函数 则传递
+			closure.upvals[i] = stack.closure.upvals[uvIdx]
 		}
 	}
 }

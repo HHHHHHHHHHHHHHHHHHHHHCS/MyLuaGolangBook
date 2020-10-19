@@ -3,13 +3,14 @@ package state
 import . "LuaGo/api"
 
 type luaStack struct {
-	slots   []luaValue //栈存放值
-	top     int        //栈顶索引
-	prev    *luaStack  //形成链表节点用
-	closure *closure   //闭包
-	varargs []luaValue //实现变长参数
-	pc      int        //内部指令
-	state   *luaState  //虚拟机
+	slots   []luaValue       //栈存放值
+	top     int              //栈顶索引
+	prev    *luaStack        //形成链表节点用
+	closure *closure         //闭包
+	varargs []luaValue       //实现变长参数
+	pc      int              //内部指令
+	state   *luaState        //虚拟机
+	openuvs map[int]*upvalue //捕获的局部变量(Open状态)
 }
 
 //创建指定长度的lua stack

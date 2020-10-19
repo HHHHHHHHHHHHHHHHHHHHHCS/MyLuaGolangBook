@@ -92,7 +92,7 @@ type Prototype struct {
 
 //Upvalues表  每个元素占2个字节
 type Upvalue struct {
-	Instack byte
+	Instack byte	//局部变量
 	Idx     byte
 }
 

@@ -13,7 +13,7 @@ type upvalue struct {
 type closure struct {
 	proto  *Prototype //lua closure
 	goFunc GoFunction //go closure
-	upvals []*upvalue
+	upvals []*upvalue //values
 }
 
 func newLuaClosure(proto *Prototype) *closure {

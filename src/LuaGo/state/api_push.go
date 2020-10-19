@@ -18,3 +18,13 @@ func (self *luaState) GetGlobal(name string) LuaType {
 	t := self.registry.get(LUA_RIDX_GLOBALS)
 	return self.getTable(t, name)
 }
+
+func (self *luaState) PushGoClosure(f GoFunction, n int) {
+	closure := newGoClosure(f, n)
+	for i := n; i > 0; i-- {
+		val := self.stack.pop()
+		//索引从0开始
+		closure.upvals[n-1] = &upvalue{&val}
+	}
+	self.stack.push(closure)
+}

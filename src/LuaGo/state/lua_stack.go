@@ -66,6 +66,13 @@ func (self *luaStack) absIndex(idx int) int {
 
 //索引是否有效  lua index起始位置1  最大 top
 func (self *luaStack) isValid(idx int) bool {
+	//upvalues
+	if idx < LUA_REGISTRYINDEX {
+		uvIdx := LUA_REGISTRYINDEX - idx - 1
+		c := self.closure
+		return c != nil && uvIdx < len(c.upvals)
+	}
+
 	//等于伪索引认定为有效索引
 	if idx == LUA_REGISTRYINDEX {
 		return true
@@ -76,6 +83,16 @@ func (self *luaStack) isValid(idx int) bool {
 
 //从栈中取出某个index  go是0开始
 func (self *luaStack) get(idx int) luaValue {
+	//upvalues
+	if idx < LUA_REGISTRYINDEX {
+		uvIdx := LUA_REGISTRYINDEX - idx - 1
+		c := self.closure
+		if c == nil || uvIdx >= len(c.upvals) {
+			return nil
+		}
+		return *(c.upvals[uvIdx].val)
+	}
+
 	//如果是伪装索引 则返回注册表
 	if idx == LUA_REGISTRYINDEX {
 		return self.state.registry
@@ -89,6 +106,15 @@ func (self *luaStack) get(idx int) luaValue {
 
 //往栈里写入某个值  索引无效则panic
 func (self *luaStack) set(idx int, val luaValue) {
+	//upvalues
+	if idx < LUA_REGISTRYINDEX {
+		uvIdx := LUA_REGISTRYINDEX - idx - 1
+		c := self.closure
+		if c != nil && uvIdx < len(c.upvals) {
+			*(c.upvals[uvIdx].val) = val
+		}
+	}
+
 	if idx == LUA_REGISTRYINDEX {
 		self.state.registry = val.(*luaTable)
 		return

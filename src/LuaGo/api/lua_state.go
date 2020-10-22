@@ -6,6 +6,12 @@ type CompareOp = int
 
 type GoFunction func(LuaState) int
 
+//伪索引 转换到 注册表索引
+func LuaUpvalueIndex(i int) int {
+	return LUA_REGISTRYINDEX - i
+}
+
+
 //栈基础操作函数
 type LuaState interface {
 	//基础栈操作

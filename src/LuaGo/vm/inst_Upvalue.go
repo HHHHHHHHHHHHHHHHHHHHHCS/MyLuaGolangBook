@@ -2,20 +2,7 @@ package vm
 
 import (
 	. "LuaGo/api"
-	. "LuaGo/state"
 )
-
-//拿到全局的表
-func getTabUp(i Instruction,vm LuaVM){
-	a,_,c :=i.ABC()
-	a+=1
-
-	vm.PushGlobalTable()
-	vm.GetRK(c)
-	vm.GetTable(-2)
-	vm.Replace(a)
-	vm.Pop(1)
-}
 
 //得到upvalue 的value
 func getUpval(i Instruction,vm LuaVM)  {
@@ -34,4 +21,24 @@ func setUpval(i Instruction,vm LuaVM) {
 
 
 	vm.Copy(a,LuaUpvalueIndex(b))
+}
+
+//如果要找的upvalue 是table
+func getTabUp(i Instruction,vm LuaVM) {
+	a,b,c := i.ABC()
+	a+=1
+	b+=1
+	vm.GetRK(c)
+	vm.GetTable(LuaUpvalueIndex(b))
+	vm.Replace(a)
+}
+
+//给upvalue 的table 设置值
+func setTabUp(i Instruction,vm LuaVM) {
+	a,b,c := i.ABC()
+	a+=1
+
+	vm.GetRK(b)
+	vm.GetRK(c)
+	vm.SetTable(LuaUpvalueIndex(a))
 }

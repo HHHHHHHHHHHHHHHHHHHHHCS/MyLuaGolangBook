@@ -16,10 +16,11 @@ func move(i Instruction, vm LuaVM) {
 }
 
 //跳转指令
+//如果a!=0 则会对 upvalue 进行闭包
 func jmp(i Instruction, vm LuaVM) {
 	a, sBx := i.AsBx()
 	vm.AddPC(sBx)
 	if a != 0 {
-		panic("TODO: jmp!")
+		vm.CloseUpvalues(a)
 	}
 }

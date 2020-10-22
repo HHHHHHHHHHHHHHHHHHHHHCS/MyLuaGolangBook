@@ -7,12 +7,6 @@ type luaState struct {
 	stack    *luaStack
 }
 
-//伪索引 转换到 注册表索引
-func LuaUpvalueIndex(i int) int {
-	return LUA_REGISTRYINDEX - i
-}
-
-
 //Lua栈初始容量
 func New() *luaState {
 	registry := newLuaTable(0, 0)

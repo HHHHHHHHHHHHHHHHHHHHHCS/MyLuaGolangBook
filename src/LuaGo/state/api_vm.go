@@ -78,3 +78,16 @@ func (self *luaState) LoadProto(idx int) {
 		}
 	}
 }
+
+func (self *luaState) CloseUpvalues(a int) {
+	for i, openuv := range self.stack.openuvs {
+		if i >= a-1 {
+			//因为可能upvalue可能还存在引用的情况
+			//先从寄存器拷贝出来Lua值 更新upvalue 为拷贝值
+			val := *openuv.val
+			openuv.val = &val
+			//再删除 形成闭合状态
+			delete(self.stack.openuvs, i)
+		}
+	}
+}

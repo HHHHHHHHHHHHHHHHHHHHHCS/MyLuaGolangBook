@@ -49,7 +49,7 @@ func (self *luaTable) put(key, val luaValue) {
 	}
 	// 如果是float 就不能是nan
 	if f, ok := key.(float64); ok && math.IsNaN(f) {
-		panic("table index is Nan!")
+		panic("table index is NaN!")
 	}
 
 	//如果可以转换为int  即尝试用index序号

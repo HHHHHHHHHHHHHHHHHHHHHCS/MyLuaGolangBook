@@ -58,6 +58,7 @@ func setList(i Instruction, vm LuaVM) {
 		vm.Pop(1)
 	}
 
+	vm.CheckStack(1)
 	idx := int64(c * LFIELDS_PER_FLUSH)
 	for j := 1; j <= b; j++ {
 		idx++

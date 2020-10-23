@@ -113,6 +113,7 @@ func (self *luaStack) set(idx int, val luaValue) {
 		if c != nil && uvIdx < len(c.upvals) {
 			*(c.upvals[uvIdx].val) = val
 		}
+		return
 	}
 
 	if idx == LUA_REGISTRYINDEX {

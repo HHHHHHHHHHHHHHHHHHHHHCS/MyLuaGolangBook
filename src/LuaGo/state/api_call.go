@@ -25,7 +25,7 @@ func (self *luaState) Load(chunk []byte, chunkName, mode string) int {
 func (self *luaState) Call(nArgs, nResults int) {
 	val := self.stack.get(-(nArgs + 1))
 	if c, ok := val.(*closure); ok {
-		//如果有proto 则是lua方法 否则是gofangfa
+		//如果有proto 则是lua方法 否则是go方法
 		if c.proto != nil {
 			self.callLuaClosure(nArgs, nResults, c)
 		} else {

@@ -39,6 +39,7 @@ type LuaState interface {
 	IsTable(idx int) bool
 	IsThread(idx int) bool
 	IsFunction(idx int) bool
+	IsGoFunction(idx int) bool
 	ToBoolean(idx int) bool
 	ToInteger(idx int) int64
 	ToIntegerX(idx int) (int64, bool)
@@ -46,36 +47,36 @@ type LuaState interface {
 	ToNumberX(idx int) (float64, bool)
 	ToString(idx int) string
 	ToStringX(idx int) (string, bool)
+	ToGoFunction(idx int) GoFunction
 	//压入栈 go->stacks
 	PushNil()
 	PushBoolean(b bool)
 	PushInteger(n int64)
 	PushNumber(n float64)
 	PushString(s string)
+	PushGoFunction(f GoFunction)
+	PushGoClosure(f GoFunction,n int)
+	PushGlobalTable()
 	//执行算数和按位运算
 	Arith(op ArithOp)
 	Compare(idx1, idx2 int, op CompareOp) bool
-	//其他方法
-	Len(idx int)
-	Concat(n int)
-	//Table
+	//get lua->stack
+	NewTable()
 	CreateTable(nArr, nRec int)
 	GetTable(idx int) LuaType
 	GetField(idx int, k string) LuaType
 	GetI(idx int, i int64) LuaType
+	GetGlobal(name string) LuaType
+	//set stack->lua
 	SetTable(idx int)
 	SetField(idx int, k string)
-	SetI(idx int, n int64)
+	SetI(idx int, i int64)
+	SetGlobal(name string)
+	Register(name string, f GoFunction)
 	//Function
 	Load(chunk []byte, chunkName, mode string) int
 	Call(nArgs, nResults int)
-	PushGoFunction(f GoFunction)
-	IsGoFunction(idx int) bool
-	ToGoFunction(idx int) GoFunction
-	//注册表用
-	PushGlobalTable()
-	GetGlobal(name string) LuaType
-	SetGlobal(name string)
-	Register(name string, f GoFunction)
-	PushGoClosure(f GoFunction,n int)
+	//其他方法
+	Len(idx int)
+	Concat(n int)
 }

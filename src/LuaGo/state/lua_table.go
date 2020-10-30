@@ -4,8 +4,9 @@ import "math"
 import "LuaGo/number"
 
 type luaTable struct {
-	arr  []luaValue
-	_map map[luaValue]luaValue //字典  字段名不能跟struct 重复
+	metatable *luaTable //元表
+	arr       []luaValue
+	_map      map[luaValue]luaValue //字典  字段名不能跟struct 重复
 }
 
 func newLuaTable(nArr, nRec int) *luaTable {
@@ -112,4 +113,3 @@ func (self *luaTable) _expandArray() {
 func (self *luaTable) len() int {
 	return len(self.arr)
 }
-

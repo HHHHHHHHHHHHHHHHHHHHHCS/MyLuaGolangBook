@@ -7,13 +7,13 @@ func (self *luaState) Compare(idx1, idx2 int, op CompareOp) bool {
 	if !self.stack.isValid(idx1) || !self.stack.isValid(idx2) {
 		return false
 	}
-	
+
 	a := self.stack.get(idx1)
 	b := self.stack.get(idx2)
 
 	switch op {
 	case LUA_OPEQ:
-		return _eq(a, b)
+		return _eq(a, b, self)
 	case LUA_OPLT:
 		return _lt(a, b)
 	case LUA_OPLE:
@@ -28,7 +28,7 @@ func (self *luaState) Compare(idx1, idx2 int, op CompareOp) bool {
 	只有两个相同类型才能比较  int64 和 float 要进行转换判断
 	如果是 自定义数据 则根据地址判断
 */
-func _eq(a, b luaValue) bool {
+func _eq(a, b luaValue, ls *luaState) bool {
 	switch x := a.(type) {
 	case nil:
 		return b == nil
@@ -56,6 +56,13 @@ func _eq(a, b luaValue) bool {
 		default:
 			return false
 		}
+	case *luaTable:
+		if y, ok := b.(*luaTable); ok && x != y && ls != nil {
+			if result, ok := callMetamethod(x, y, "__eq", ls); ok {
+				return convertToBoolean(result)
+			}
+		}
+		return a == b
 	default:
 		return a == b
 	}

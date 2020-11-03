@@ -15,9 +15,9 @@ func (self *luaState) Compare(idx1, idx2 int, op CompareOp) bool {
 	case LUA_OPEQ:
 		return _eq(a, b, self)
 	case LUA_OPLT:
-		return _lt(a, b)
+		return _lt(a, b, self)
 	case LUA_OPLE:
-		return _le(a, b)
+		return _le(a, b, self)
 	default:
 		panic("invalid compare op!")
 	}
@@ -69,7 +69,7 @@ func _eq(a, b luaValue, ls *luaState) bool {
 }
 
 //a<b
-func _lt(a, b luaValue) bool {
+func _lt(a, b luaValue, ls *luaState) bool {
 	switch x := a.(type) {
 	case string:
 		if y, ok := b.(string); ok {
@@ -94,11 +94,17 @@ func _lt(a, b luaValue) bool {
 			}
 		}
 	}
-	panic("comparison error!")
+
+	if result, ok := callMetamethod(a, b, "__lt", ls); ok {
+		return convertToBoolean(result)
+	} else {
+		panic("comparison error!")
+
+	}
 }
 
 //a<=b
-func _le(a, b luaValue) bool {
+func _le(a, b luaValue, ls *luaState) bool {
 	switch x := a.(type) {
 	case string:
 		if y, ok := b.(string); ok {
@@ -123,5 +129,13 @@ func _le(a, b luaValue) bool {
 			}
 		}
 	}
-	panic("comparison error!")
+	//先用<=去查找  如果没有这个方法
+	//则用>去尝试查找
+	if result, ok := callMetamethod(a, b, "__le", ls); ok {
+		return convertToBoolean(result)
+	} else if result, ok := callMetamethod(b, a, "__lt", ls); ok {
+		return !convertToBoolean(result)
+	} else {
+		panic("comparison error!")
+	}
 }

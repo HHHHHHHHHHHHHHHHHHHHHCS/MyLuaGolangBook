@@ -16,7 +16,7 @@ func (self *luaState) PushGlobalTable() {
 
 func (self *luaState) GetGlobal(name string) LuaType {
 	t := self.registry.get(LUA_RIDX_GLOBALS)
-	return self.getTable(t, name)
+	return self.getTable(t, name, false)
 }
 
 func (self *luaState) PushGoClosure(f GoFunction, n int) {

@@ -22,9 +22,22 @@ func (self *luaState) Load(chunk []byte, chunkName, mode string) int {
 
 //正常闭包在栈顶-nArgs的位置  所以 nArgs 是参数位置 同时也暗示告诉包的位置
 //nResults 返回多少个参数
+//如果栈顶不是方法 则看看元表 __call
 func (self *luaState) Call(nArgs, nResults int) {
 	val := self.stack.get(-(nArgs + 1))
-	if c, ok := val.(*closure); ok {
+
+	c, ok := val.(*closure)
+	//如果有有元表方法__call 则覆盖c和ok 把当前表也当作数据传入参数
+	if !ok {
+		if mf := getMetafield(val, "__call", self); mf != nil {
+			if c, ok = mf.(*closure); ok {
+				self.stack.push(val)
+				self.Insert(-(nArgs + 2))
+				nArgs += 1
+			}
+		}
+	}
+	if ok {
 		//如果有proto 则是lua方法 否则是go方法
 		if c.proto != nil {
 			self.callLuaClosure(nArgs, nResults, c)

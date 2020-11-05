@@ -11,7 +11,6 @@ func LuaUpvalueIndex(i int) int {
 	return LUA_REGISTRYINDEX - i
 }
 
-
 //栈基础操作函数
 type LuaState interface {
 	//基础栈操作
@@ -55,7 +54,7 @@ type LuaState interface {
 	PushNumber(n float64)
 	PushString(s string)
 	PushGoFunction(f GoFunction)
-	PushGoClosure(f GoFunction,n int)
+	PushGoClosure(f GoFunction, n int)
 	PushGlobalTable()
 	//执行算数和按位运算
 	Arith(op ArithOp)
@@ -76,6 +75,15 @@ type LuaState interface {
 	//Function
 	Load(chunk []byte, chunkName, mode string) int
 	Call(nArgs, nResults int)
+	//Metatable
+	GetMetatable(idx int) bool
+	SetMetatable(idx int)
+	RawLen(idx int) uint
+	RawEqual(idx1, idx2 int) bool
+	RawGet(idx int) LuaType
+	RawSet(idx int)
+	RawGetI(idx int, i int64) LuaType
+	RawSetI(idx int, i int64)
 	//其他方法
 	Len(idx int)
 	Concat(n int)

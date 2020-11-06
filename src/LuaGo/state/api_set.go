@@ -66,3 +66,19 @@ func (self *luaState) SetI(idx int, i int64) {
 	v := self.stack.pop()
 	self.setTable(t, i, v, false)
 }
+
+//从栈顶弹出一个表
+//如果栈顶是表  则设置元表   不是表 则 设定元表为null
+func (self *luaState) SetMetatable(idx int) {
+
+	val := self.stack.get(idx)
+	mtVal := self.stack.pop()
+
+	if mtVal == nil {
+		setMetatable(val, nil, self)
+	} else if mt, ok := mtVal.(*luaTable); ok {
+		setMetatable(val, mt, self)
+	} else {
+		panic("table expected!") //TODO:
+	}
+}

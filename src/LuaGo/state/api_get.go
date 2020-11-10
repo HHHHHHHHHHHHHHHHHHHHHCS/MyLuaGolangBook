@@ -4,13 +4,13 @@ import (
 	. "LuaGo/api"
 )
 
+func (self *luaState) NewTable() {
+	self.CreateTable(0, 0)
+}
+
 func (self *luaState) CreateTable(nArr, nRec int) {
 	t := newLuaTable(nArr, nRec)
 	self.stack.push(t)
-}
-
-func (self *luaState) NewTable() {
-	self.CreateTable(0, 0)
 }
 
 //从idx找出表  索引在栈顶
@@ -30,6 +30,35 @@ func (self *luaState) GetField(idx int, k string) LuaType {
 func (self *luaState) GetI(idx int, i int64) LuaType {
 	t := self.stack.get(idx)
 	return self.getTable(t, i, false)
+}
+
+//不使用元表  直接Get
+func (self *luaState) RawGet(idx int) LuaType {
+	t := self.stack.get(idx)
+	k := self.stack.pop()
+	return self.getTable(t, k, true)
+}
+
+//不使用元表  直接GetI
+func (self *luaState) RawGetI(idx int, i int64) LuaType {
+	t := self.GetTable(idx)
+	return self.getTable(t, i, true)
+}
+
+func (self *luaState) GetGlobal(name string) LuaType {
+	t := self.registry.get(LUA_RIDX_GLOBALS)
+	return self.getTable(t, name, false)
+}
+
+func (self *luaState) GetMetatable(idx int) bool {
+	val := self.stack.get(idx)
+
+	if mt := getMetatable(val, self); mt != nil {
+		self.stack.push(mt)
+		return true
+	} else {
+		return false
+	}
 }
 
 //t 是 table  get(index)的value  把值放入栈顶  返回val.(typeOf)
@@ -61,16 +90,4 @@ func (self *luaState) getTable(t, k luaValue, raw bool) LuaType {
 		}
 	}
 	panic("index error!")
-}
-
-func (self *luaState) GetMetatable(idx int) bool {
-	val := self.stack.get(idx)
-
-	if mt := getMetatable(val, self); mt != nil {
-		self.stack.push(mt)
-		return true
-	} else {
-		return false
-	}
-
 }

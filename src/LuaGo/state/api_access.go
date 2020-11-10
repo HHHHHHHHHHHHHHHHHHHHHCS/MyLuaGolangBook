@@ -5,8 +5,20 @@ import (
 	"fmt"
 )
 
-//从栈顶获取信息
+//不使用原表 直接len
+func (self *luaState) RawLen(idx int) uint {
+	val := self.stack.get(idx)
+	switch x := val.(type) {
+	case string:
+		return uint(len(x))
+	case *luaTable:
+		return uint(x.len())
+	default:
+		return 0
+	}
+}
 
+//从栈顶获取信息
 //把LUA的类型 转换成字符串
 func (self *luaState) TypeName(tp LuaType) string {
 	switch tp {
@@ -153,13 +165,10 @@ func (self *luaState) IsGoFunction(idx int) bool {
 }
 
 //从栈中返回goFunc
-func (self *luaState) ToGoFunction(idx int) GoFunction{
-	val:=self.stack.get(idx)
-	if c,ok:=val.(*closure);ok{
+func (self *luaState) ToGoFunction(idx int) GoFunction {
+	val := self.stack.get(idx)
+	if c, ok := val.(*closure); ok {
 		return c.goFunc
 	}
 	return nil
 }
-
-
-

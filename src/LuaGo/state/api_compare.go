@@ -2,6 +2,17 @@ package state
 
 import . "LuaGo/api"
 
+//不使用原表 直接Equal
+func (self *luaState) RawEqual(idx1, idx2 int) bool {
+	if !self.stack.isValid(idx1) || !self.stack.isValid(idx2) {
+		return false
+	}
+
+	a := self.stack.get(idx1)
+	b := self.stack.get(idx2)
+	return _eq(a, b, nil)
+}
+
 //比较操作 选择栈里的两个位置进行比较 不会修改栈的状态
 func (self *luaState) Compare(idx1, idx2 int, op CompareOp) bool {
 	if !self.stack.isValid(idx1) || !self.stack.isValid(idx2) {

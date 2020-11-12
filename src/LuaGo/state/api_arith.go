@@ -1,8 +1,8 @@
 package state
 
 import (
-	"LuaGo/number"
 	. "LuaGo/api"
+	"LuaGo/number"
 	"math"
 )
 
@@ -76,12 +76,12 @@ func (self *luaState) Arith(op ArithOp) {
 	}
 
 	mm := operator.metamethod
-	if result,ok:=callMetamethod(a,b,mm,self);ok{
+	if result, ok := callMetamethod(a, b, mm, self); ok {
 		self.stack.push(result)
 		return
 	}
 
-	painc("arithmetic error!")
+	panic("arithmetic error!")
 }
 
 func _arith(a, b luaValue, op operator) luaValue {

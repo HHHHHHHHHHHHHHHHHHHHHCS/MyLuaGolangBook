@@ -11,12 +11,15 @@ type CH11Test struct {
 }
 
 func (test *CH11Test) DoTest() {
-	data, err := ioutil.ReadFile("src/CH00_Luac/CH10Test.luac")
+	data, err := ioutil.ReadFile("src/CH00_Luac/CH11Test.luac")
 	if err != nil {
 		panic(err)
 	}
 	ls := state.New()
 	ls.Register("print", test.print)
+	ls.Register("getMetatable", test.getMetatable)
+	ls.Register("setMetatable", test.setMetatable)
+
 	ls.Load(data, "chunk", "b")
 	ls.Call(0, 0)
 }
@@ -39,9 +42,14 @@ func (test CH11Test) print(ls LuaState) int {
 	return 0
 }
 
-func getMetatable(ls LuaState) int {
+func (test CH11Test) getMetatable(ls LuaState) int {
 	if !ls.GetMetatable(1) {
 		ls.PushNil()
 	}
+	return 1
+}
+
+func (test CH11Test) setMetatable(ls LuaState) int {
+	ls.SetMetatable(1)
 	return 1
 }

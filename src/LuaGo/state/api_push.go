@@ -19,7 +19,7 @@ func (self *luaState) PushGoClosure(f GoFunction, n int) {
 	for i := n; i > 0; i-- {
 		val := self.stack.pop()
 		//索引从0开始
-		closure.upvals[n-1] = &upvalue{&val}
+		closure.upvals[i-1] = &upvalue{&val}
 	}
 	self.stack.push(closure)
 }

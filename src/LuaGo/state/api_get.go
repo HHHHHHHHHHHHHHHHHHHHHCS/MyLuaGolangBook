@@ -41,7 +41,7 @@ func (self *luaState) RawGet(idx int) LuaType {
 
 //不使用元表  直接GetI
 func (self *luaState) RawGetI(idx int, i int64) LuaType {
-	t := self.GetTable(idx)
+	t := self.stack.get(idx)
 	return self.getTable(t, i, true)
 }
 

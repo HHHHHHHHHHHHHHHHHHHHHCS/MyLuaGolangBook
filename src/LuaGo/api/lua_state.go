@@ -59,32 +59,31 @@ type LuaState interface {
 	//执行算数和按位运算
 	Arith(op ArithOp)
 	Compare(idx1, idx2 int, op CompareOp) bool
+	RawEqual(idx1, idx2 int) bool
 	//get lua->stack
 	NewTable()
 	CreateTable(nArr, nRec int)
 	GetTable(idx int) LuaType
 	GetField(idx int, k string) LuaType
 	GetI(idx int, i int64) LuaType
+	RawGet(idx int) LuaType
+	RawGetI(idx int, i int64) LuaType
+	GetMetatable(idx int) bool
 	GetGlobal(name string) LuaType
 	//set stack->lua
 	SetTable(idx int)
 	SetField(idx int, k string)
 	SetI(idx int, i int64)
+	RawSet(idx int)
+	RawSetI(idx int, i int64)
+	SetMetatable(idx int)
 	SetGlobal(name string)
 	Register(name string, f GoFunction)
 	//Function
 	Load(chunk []byte, chunkName, mode string) int
 	Call(nArgs, nResults int)
-	//Metatable
-	GetMetatable(idx int) bool
-	SetMetatable(idx int)
-	RawLen(idx int) uint
-	RawEqual(idx1, idx2 int) bool
-	RawGet(idx int) LuaType
-	RawSet(idx int)
-	RawGetI(idx int, i int64) LuaType
-	RawSetI(idx int, i int64)
 	//其他方法
 	Len(idx int)
+	RawLen(idx int) uint
 	Concat(n int)
 }

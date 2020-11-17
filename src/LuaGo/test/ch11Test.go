@@ -17,8 +17,8 @@ func (test *CH11Test) DoTest() {
 	}
 	ls := state.New()
 	ls.Register("print", test.print)
-	ls.Register("getMetatable", test.getMetatable)
-	ls.Register("setMetatable", test.setMetatable)
+	ls.Register("getmetatable", test.getMetatable)
+	ls.Register("setmetatable", test.setMetatable)
 
 	ls.Load(data, "chunk", "b")
 	ls.Call(0, 0)

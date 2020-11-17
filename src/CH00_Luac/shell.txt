@@ -1,5 +1,5 @@
 luac53 .\HelloWorld.lua  #生成luac.out
-luac53 -o .\hw.luac .\HelloWorld.lua  #生成hw.luac
+luac53 -o .\CH11Test.luac .\CH11Test.lua  #生成hw.luac
 luac53 -s .\HelloWorld.lua  #不包含调试信息
 luac53 -p .\HelloWorld.lua  #只进行语法检测
 

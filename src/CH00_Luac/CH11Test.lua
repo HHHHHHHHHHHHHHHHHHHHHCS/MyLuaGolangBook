@@ -42,6 +42,7 @@ mt.__call = function(v)
     print("[" .. v.x .. " , " .. v.y .. "]")
 end
 
+
 v1 = vector(1, 2)
 v1:print()
 v2 = vector(3, 4)

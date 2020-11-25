@@ -7,6 +7,7 @@ type luaTable struct {
 	metatable *luaTable //元表
 	arr       []luaValue
 	_map      map[luaValue]luaValue //字典  字段名不能跟struct 重复
+	keys      map[luaValue]luaValue //for in 遍历用  因为GO的map遍历顺序无法保证
 }
 
 func newLuaTable(nArr, nRec int) *luaTable {
@@ -117,4 +118,30 @@ func (self *luaTable) len() int {
 func (self *luaTable) hasMetafield(fieldName string) bool {
 	return self.metatable != nil &&
 		self.metatable.get(fieldName) != nil
+}
+
+func (self *luaTable) initKeys() {
+	self.keys = make(map[luaValue]luaValue)
+	var key luaValue = nil
+	for i, v := range self.arr {
+		if v != nil {
+			self.keys[key] = int64(i + 1)
+			key = int64(i + 1)
+		}
+	}
+	for k, v := range self._map {
+		if v != nil {
+			self.keys[key] = k
+			key = k
+		}
+	}
+}
+
+func (self *luaTable) nextKey(key luaValue) luaValue {
+	if self.keys == nil || key == nil {
+		self.initKeys()
+		self.changed = false
+	}
+
+	return self.keys[key]
 }

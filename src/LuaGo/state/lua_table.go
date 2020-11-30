@@ -8,6 +8,8 @@ type luaTable struct {
 	arr       []luaValue
 	_map      map[luaValue]luaValue //字典  字段名不能跟struct 重复
 	keys      map[luaValue]luaValue //for in 遍历用  因为GO的map遍历顺序无法保证
+	lastKey   luaValue              //next key用
+	changed   bool                  //遍历initkeys用
 }
 
 func newLuaTable(nArr, nRec int) *luaTable {
@@ -120,6 +122,7 @@ func (self *luaTable) hasMetafield(fieldName string) bool {
 		self.metatable.get(fieldName) != nil
 }
 
+//搜集key  因为golang的map的foreach顺序不确定
 func (self *luaTable) initKeys() {
 	self.keys = make(map[luaValue]luaValue)
 	var key luaValue = nil
@@ -135,6 +138,7 @@ func (self *luaTable) initKeys() {
 			key = k
 		}
 	}
+	self.lastKey = key
 }
 
 func (self *luaTable) nextKey(key luaValue) luaValue {
@@ -143,5 +147,10 @@ func (self *luaTable) nextKey(key luaValue) luaValue {
 		self.changed = false
 	}
 
-	return self.keys[key]
+	nextKey := self.keys[key]
+	if nextKey == nil && key != nil && key != self.lastKey {
+		panic("invalid key to 'next'")
+	}
+
+	return nextKey
 }

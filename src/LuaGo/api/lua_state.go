@@ -86,4 +86,5 @@ type LuaState interface {
 	Len(idx int)
 	RawLen(idx int) uint
 	Concat(n int)
+	Next(idx int) bool
 }

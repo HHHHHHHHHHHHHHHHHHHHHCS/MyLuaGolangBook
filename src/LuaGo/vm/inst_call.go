@@ -95,15 +95,25 @@ func tailCall(i Instruction, vm LuaVM) {
 	_popResults(a, c, vm)
 }
 
-func self(i Instruction,vm LuaVM){
+func self(i Instruction, vm LuaVM) {
 	//对象和方法拷贝到相邻的两个目标寄存器中
 	//对象在b  方法在常量表在c  目标索引在a
-	a,b,c :=i.ABC()
-	a+=1
-	b+=1
+	a, b, c := i.ABC()
+	a += 1
+	b += 1
 
-	vm.Copy(b,a+1)
+	vm.Copy(b, a+1)
 	vm.GetRK(c)
 	vm.GetTable(b)
 	vm.Replace(a)
 }
+
+func tForCall(i Instruction, vm LuaVM) {
+	a, _, c := i.ABC()
+	a += 1
+
+	_pushFuncAndArgs(a, 3, vm)
+	vm.Call(2, c)
+	_popResults(a+3, c+1, vm)
+}
+

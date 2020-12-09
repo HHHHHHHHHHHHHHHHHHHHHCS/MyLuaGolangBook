@@ -87,4 +87,7 @@ type LuaState interface {
 	RawLen(idx int) uint
 	Concat(n int)
 	Next(idx int) bool
+	//try catch
+	Error() int
+	PCall(nArgs, nResults, msgh int) int
 }

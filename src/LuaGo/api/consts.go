@@ -43,3 +43,15 @@ const (
 	LUA_OPLT        // <
 	LUA_OPLE        //<=
 )
+
+//异常
+const (
+	LUA_OK = iota //成功
+	LUA_YIELD
+	LUA_ERRRUN //PCall 用
+	LUA_ERRSYNTAX
+	LUA_ERRMEM
+	LUA_ERRGCMM
+	LUA_ERRERR
+	LUA_ERRFILE
+)

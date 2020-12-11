@@ -32,7 +32,7 @@ func (self *luaState) Concat(n int) {
 				self.stack.push(s1 + s2)
 				continue
 			}
-			
+
 			//lua操作符.. 如果是table 则走元表__concat 
 			b := self.stack.pop()
 			a := self.stack.pop()
@@ -47,11 +47,12 @@ func (self *luaState) Concat(n int) {
 	//if n == 1 , do nothing
 }
 
-func (self *luaState) Next(idx int) bool{
-	val:=self.stack.get(idx)
-	if t,ok:=val.(*luaTable);ok{
-		key:=self.stack.pop()
-		if nextKey:=t.nextKey(key);nextKey!=nil{
+//for in pairs 用
+func (self *luaState) Next(idx int) bool {
+	val := self.stack.get(idx)
+	if t, ok := val.(*luaTable); ok {
+		key := self.stack.pop()
+		if nextKey := t.nextKey(key); nextKey != nil {
 			self.stack.push(nextKey)
 			self.stack.push(t.get(nextKey))
 			return true
@@ -59,4 +60,9 @@ func (self *luaState) Next(idx int) bool{
 		return false
 	}
 	panic("table expected")
+}
+
+func (self *luaState) Error() int {
+	err := self.stack.pop()
+	panic(err)
 }

@@ -21,7 +21,7 @@ func (self *luaState) Load(chunk []byte, chunkName, mode string) int {
 }
 
 //正常闭包在栈顶-nArgs的位置  所以 nArgs 是参数位置 同时也暗示告诉包的位置
-//nResults 返回多少个参数
+//nResults 返回多少个参数  如果是-1  则返回全部参数
 //如果栈顶不是方法 则看看元表 __call
 func (self *luaState) Call(nArgs, nResults int) {
 	val := self.stack.get(-(nArgs + 1))
@@ -107,4 +107,25 @@ func (self *luaState) callGoClosure(nArgs, nResults int, c *closure) {
 		self.stack.check(len(results))
 		self.stack.pushN(results, nResults)
 	}
+}
+
+func (self *luaState) PCall(nArgs, nResults, msgh int) (status int) {
+	caller := self.stack
+	status = LUA_ERRRUN
+	// 异常捕获机制
+	defer func() {
+		//recover是一个从panic恢复的内建函数。
+		//recover只有在defer的函数里面才能发挥真正的作用
+		if err := recover(); err != nil {
+			for self.stack != caller {
+				self.popLuaStack()
+			}
+			self.stack.push(err)
+		}
+	}()
+
+	self.Call(nArgs, nResults)
+	//如果call 失败了  则直接 跳到  return 在 defer   最后输出
+	status = LUA_OK
+	return
 }

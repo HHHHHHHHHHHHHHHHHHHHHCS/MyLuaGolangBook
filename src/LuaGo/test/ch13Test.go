@@ -50,6 +50,7 @@ func (test CH13Test) error(ls LuaState) int {
 func (test CH13Test) pCall(ls LuaState) int {
 	nArgs := ls.GetTop() - 1 //第一个是栈堆  后面一位才是参数个数
 	status := ls.PCall(nArgs, -1, 0)
+	//因为是后面push进来的   所以这里要翻转下
 	ls.PushBoolean(status == LUA_OK)
 	ls.Insert(1)
 	return ls.GetTop()

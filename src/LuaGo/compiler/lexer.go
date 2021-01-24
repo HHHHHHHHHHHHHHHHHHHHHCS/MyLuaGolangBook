@@ -1,23 +1,39 @@
 package lexer
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
-var reOpeningLongBracket = regexp.MustCompile(`^\[=*\[`)
 var reNewLine = regexp.MustCompile(`\r\n|\n\r|\n|\r`)
+var reIdentifier = regexp.MustCompile(`^[_\d\w]+`)
+var reNumber = regexp.MustCompile(`^0[xX][0-9a-fA-F]*(\.[0-9a-fA-F]*)?([pP][+\-]?[0-9]+)?|^[0-9]*(\.[0-9]*)?([eE][+\-]?[0-9]+)?`)
+var reShortStr = regexp.MustCompile(`(?s)(^'(\\\\|\\'|\\\n|\\z\s*|[^'\n])*')|(^"(\\\\|\\"|\\\n|\\z\s*|[^"\n])*")`)
+var reOpeningLongBracket = regexp.MustCompile(`^\[=*\[`)
+
+var reDecEscapeSeq = regexp.MustCompile(`^\\[0-9]{1,3}`)
+var reHexEscapeSeq = regexp.MustCompile(`^\\x[0-9a-fA-F]{2}`)
+var reUnicodeEscapeSeq = regexp.MustCompile(`^\\u{[0-9a-fA-F]+}`)
 
 type Lexer struct {
-	chunk     string //源代码
-	chunkName string //源文件名
-	line      int    //当前行号
+	chunk         string //源代码
+	chunkName     string //源文件名
+	line          int    //当前行号
+	nextToken     string //下一个token
+	nextTokenKind int    //下一个token的编译结果
+	nextTokenLine int    //下一个token的行号
 }
 
 //创建行号为1的Lexer
 func NewLexer(chunk, chunkName string) *Lexer {
-	return &Lexer{chunk, chunkName, 1}
+	return &Lexer{chunk, chunkName, 1, "", 0, 0}
+}
+
+func (self *Lexer) Line() int {
+	return self.line
 }
 
 //判断字符串的开头
@@ -50,6 +66,36 @@ func (self *Lexer) error(f string, a ...interface{}) {
 	panic(err)
 }
 
+//检测是数字
+func isDigit(c byte) bool {
+	return c >= '0' && c <= '9'
+}
+
+//判断是字母
+func isLatter(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
+}
+
+//跳过一些换行和注释
+func (self *Lexer) skipWhiteSpaces() {
+	for len(self.chunk) > 0 {
+		if self.test("--") {
+			self.skipComment()
+		} else if self.test("\r\n") || self.test("\n\r") {
+			self.next(2)
+			self.line += 1
+		} else if isNewLine(self.chunk[0]) {
+			self.next(1)
+			self.line += 1
+		} else if isWhiteSpace(self.chunk[0]) {
+			self.next(1)
+		} else {
+			break
+		}
+
+	}
+}
+
 //去除长注释
 func (self *Lexer) scanLongString() string {
 	//找出[=?[长注释的头
@@ -79,6 +125,119 @@ func (self *Lexer) scanLongString() string {
 	return str
 }
 
+//扫描短字符串
+func (self *Lexer) scanShortString() string {
+	if str := reShortStr.FindString(self.chunk); str != "" {
+		self.next(len(str))
+		str = str[1 : len(str)-1]
+		if strings.Index(str, `\`) >= 0 {
+			self.line += len(reNewLine.FindAllString(str, -1))
+			str = self.escape(str)
+		}
+		return str
+	}
+	self.error("unfinished string")
+	return ""
+}
+
+//转义
+func (self *Lexer) escape(str string) string {
+	var buf bytes.Buffer
+
+	for len(str) > 0 {
+		if str[0] != '\\' {
+			buf.WriteByte(str[0])
+			str = str[1:]
+			continue
+		}
+		if len(str) == 1 {
+			self.error("unfinished string")
+		}
+		switch str[1] {
+		case 'a':
+			buf.WriteByte('\a')
+			str = str[2:]
+			continue
+		case 'b':
+			buf.WriteByte('\b')
+			str = str[2:]
+			continue
+		case 'f':
+			buf.WriteByte('\f')
+			str = str[2:]
+			continue
+		case 'n', '\n':
+			buf.WriteByte('\n')
+			str = str[2:]
+			continue
+		case 'r':
+			buf.WriteByte('\r')
+			str = str[2:]
+			continue
+		case 't':
+			buf.WriteByte('\t')
+			str = str[2:]
+			continue
+		case 'v':
+			buf.WriteByte('\v')
+			str = str[2:]
+			continue
+		case '"':
+			buf.WriteByte('"')
+			str = str[2:]
+			continue
+		case '\'':
+			buf.WriteByte('\'')
+			str = str[2:]
+			continue
+		case '\\':
+			buf.WriteByte('\\')
+			str = str[2:]
+			continue
+		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9': // \ddd
+			//超过0xFF则报错
+			if found := reDecEscapeSeq.FindString(str); found != "" {
+				d, _ := strconv.ParseInt(found[1:], 10, 32)
+				if d <= 0xFF {
+					buf.WriteByte(byte(d))
+					str = str[len(found):]
+					continue
+				}
+				self.error("decimal escape too large near '%s'", found)
+			}
+		case 'x': // \xXX
+			//16进制转换 \x0-9a-f
+			if found := reHexEscapeSeq.FindString(str); found != "" {
+				d, _ := strconv.ParseInt(found[2:], 16, 32)
+				buf.WriteByte(byte(d))
+				str = str[len(found):]
+				continue
+			}
+		case 'u': // \u{XXX}
+			//unicode代码 <=十六进制
+			if found := reUnicodeEscapeSeq.FindString(str); found != "" {
+				d, err := strconv.ParseInt(found[3:len(found)-1], 16, 32)
+				if err == nil && d <= 0x10FFFF {
+					buf.WriteRune(rune(d))
+					str = str[len(found):]
+					continue
+				}
+				self.error("UTF-8 value too large near '%s'", found)
+			}
+		case 'z':
+			//先跳过这个转义 和空白字符串  正则表达式用
+			str = str[2:]
+			for len(str) > 0 && isWhiteSpace(str[0]) { // todo
+				str = str[1:]
+			}
+			continue
+		}
+		self.error("invalid escape sequence near '\\%c'", str[1])
+	}
+
+	return buf.String()
+}
+
 //跳过注释
 func (self *Lexer) skipComment() {
 	self.next(2)        // skip --
@@ -93,27 +252,64 @@ func (self *Lexer) skipComment() {
 	}
 }
 
-//跳过一些换行和注释
-func (self *Lexer) skipWhiteSpaces() {
-	for len(self.chunk) > 0 {
-		if self.test("--") {
-			self.skipComment()
-		} else if self.test("\r\n") || self.test("\n\r") {
-			self.next(2)
-			self.line += 1
-		} else if isNewLine(self.chunk[0]) {
-			self.next(1)
-			self.line += 1
-		} else if isWhiteSpace(self.chunk[0]) {
-			self.next(1)
-		} else {
-			break
-		}
-
+func (self *Lexer) scan(re *regexp.Regexp) string {
+	if token := re.FindString(self.chunk); token != "" {
+		self.next(len(token))
+		return token
 	}
+	panic("unreachable!")
+}
+
+//判断是数字
+func (self *Lexer) scanNumber() string {
+	return self.scan(reNumber)
+}
+
+//判断是关键字or变量
+func (self *Lexer) scanIdentifier() string {
+	return self.scan(reIdentifier)
+}
+
+//预测下一个token
+func (self *Lexer) LookAhead() int {
+	if self.nextTokenLine > 0 {
+		return self.nextTokenLine
+	}
+
+	currentLine := self.line
+	line, kind, token := self.NextToken()
+	self.line = currentLine
+	self.nextTokenLine = line
+	self.nextTokenKind = kind
+	self.nextToken = token
+	return kind
+}
+
+//提取指定的kind
+func (self *Lexer) NextTokenOfKind(kind int) (line int, token string) {
+	line, _kind, token := self.NextToken()
+	if kind != _kind {
+		self.error("syntax error near '%s'", token)
+	}
+	return line, token
+}
+
+//提取 自己定义的变量
+func (self *Lexer) NextIdentifier() (line int, token string) {
+	return self.NextTokenOfKind(TOKEN_IDENTIFIER)
 }
 
 func (self *Lexer) NextToken() (line, kind int, token string) {
+	//已经预测好了
+	if self.nextTokenLine > 0 {
+		line = self.nextTokenLine
+		kind = self.nextTokenKind
+		token = self.nextToken
+		self.line = self.nextTokenLine
+		self.nextTokenLine = 0
+		return
+	}
+
 	self.skipWhiteSpaces()
 	if len(self.chunk) == 0 {
 		return self.line, TOKEN_EOF, "EOF"
@@ -239,4 +435,25 @@ func (self *Lexer) NextToken() (line, kind int, token string) {
 	case '\'', '"':
 		return self.line, TOKEN_STRING, self.scanShortString()
 	}
+
+	//数字扫描
+	c := self.chunk[0]
+	if c == '.' || isDigit(c) {
+		token := self.scanNumber()
+		return self.line, TOKEN_NUMBER, token
+	}
+
+	//关键字和变量扫描
+	if c == '_' || isLatter(c) {
+		token := self.scanIdentifier()
+		if kind, found := keywords[token]; found {
+			return line, kind, token //keyword
+		} else {
+			return line, TOKEN_IDENTIFIER, token
+		}
+	}
+
+	//return default or null
+	self.error("unexpected symbol near %q", c)
+	return
 }

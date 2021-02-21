@@ -50,4 +50,5 @@ func parseStats(lexer *Lexer) []Stat {
 			stats = append(stats, stat)
 		}
 	}
+	return stats
 }

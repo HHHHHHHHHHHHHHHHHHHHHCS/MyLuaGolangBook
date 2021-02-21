@@ -31,7 +31,7 @@ type BreakStat struct {
 }
 
 //`::`Name`::`
-//todo的name用
+//goto的name用
 type LabelStat struct {
 	Name string
 }

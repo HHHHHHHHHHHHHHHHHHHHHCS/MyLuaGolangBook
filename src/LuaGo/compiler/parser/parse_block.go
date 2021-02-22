@@ -5,8 +5,8 @@ import . "LuaGo/compiler/lexer"
 
 func parseBlock(lexer *Lexer) *Block {
 	return &Block{
-		Stats:    parseStats(lexer),
-		RetExps:  parseRetExps(lexer),
+		Stats:    parseStats(lexer),   //行为语句
+		RetExps:  parseRetExps(lexer), //return表达式
 		LastLine: lexer.Line(),
 	}
 }

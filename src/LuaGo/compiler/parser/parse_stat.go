@@ -1,6 +1,8 @@
 package parser
 
-import . "LuaGo/compiler/ast"
+import (
+	. "LuaGo/compiler/ast"
+)
 import . "LuaGo/compiler/lexer"
 
 func parseStat(lexer *Lexer) Stat {
@@ -103,4 +105,58 @@ func parseIfStat(lexer *Lexer) *IfStat {
 
 	lexer.NextTokenOfKind(TOKEN_KW_END)
 	return &IfStat{Exps: exps, Blocks: blocks} //end
+}
+
+func parseForStat(lexer *Lexer) Stat {
+	lineOfFor, _ = lexer.NextTokenOfKind(TOKEN_KW_FOR)
+	_, name := lexer.NextIdentifier()
+	//有 = 号  默认为 for ; ; do
+	//这里是偷懒的做法 要思考补齐
+	if lexer.LookAhead() == TOKEN_OP_ASSIGN {
+		return _finishForNumStat(lexer, lineOfFor, name)
+	} else {
+		return _finishForInStat(lexer, name)
+	}
+}
+
+func _finishForNumStat(lexer *Lexer, lineOfFor int, varName string) *ForNumStat {
+	lexer.NextTokenOfKind(TOKEN_OP_ASSIGN) //for name `=`
+	initExp := parseExp(lexer)             //exp
+	lexer.NextTokenOfKind(TOKEN_SEP_COMMA) //`,`
+	limitExp := parseExp(lexer)
+
+	var stepExp Exp
+	if lexer.LookAhead() == TOKEN_SEP_COMMA {
+		lexer.NextToken()         //`,`
+		stepExp = parseExp(lexer) //exp
+	} else {
+		stepExp = &IntegerExp{Line: lexer.Line(), Val: 1} //默认+1
+	}
+
+	lineOfDo, _ := lexer.NextTokenOfKind(TOKEN_KW_DO) //do
+	block := parseBlock(lexer)                        //block
+	lexer.NextTokenOfKind(TOKEN_KW_END)               //end
+
+	return &ForNumStat{LineOfFor: lineOfFor, LineOfDo: lineOfDo,
+		VarName: varName, InitExp: initExp, LimitExp: limitExp, StepExp: stepExp, Block: block}
+}
+
+func _finishNameList(lexer *Lexer, name0 string) []string {
+	names := []string{name0}
+	for lexer.LookAhead() == TOKEN_SEP_COMMA {
+		lexer.NextToken()                 //`,`
+		_, name := lexer.NextIdentifier() //name
+		names = append(names, name)
+	}
+	return names
+}
+
+func _finishForInStat(lexer *Lexer, name0 string) *ForInStat {
+	nameList := _finishNameList(lexer, name0) //for nameList
+	lexer.NextTokenOfKind(TOKEN_KW_IN)
+	expList := parseExpList(lexer)
+	lineOfDo, _ := lexer.NextTokenOfKind(TOKEN_KW_DO)
+	block := parseBlock(lexer)
+	lexer.NextTokenOfKind(TOKEN_KW_END)
+	return &ForInStat{LineOfDo: lineOfDo, NameList: nameList, ExpList: expList, Block: block}
 }

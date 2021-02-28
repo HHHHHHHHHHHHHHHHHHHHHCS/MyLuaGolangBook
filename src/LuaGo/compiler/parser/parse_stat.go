@@ -160,3 +160,107 @@ func _finishForInStat(lexer *Lexer, name0 string) *ForInStat {
 	lexer.NextTokenOfKind(TOKEN_KW_END)
 	return &ForInStat{LineOfDo: lineOfDo, NameList: nameList, ExpList: expList, Block: block}
 }
+
+func _finishLocalFuncDefStat(lexer *Lexer) *LocalFuncDefStat {
+	lexer.NextTokenOfKind(TOKEN_KW_FUNCTION)
+	_, name := lexer.NextIdentifier()
+	fdExp := parseFuncDefExp(lexer)
+	return &LocalFuncDefStat{Name: name, Exp: fdExp}
+}
+
+func _finishLocalVarDeclStat(lexer *Lexer) *LocalVarDeclStat {
+	_, name0 := lexer.NextIdentifier()        //local name
+	nameList := _finishNameList(lexer, name0) //{',',name}
+	var expList []Exp = nil
+	if lexer.LookAhead() == TOKEN_OP_ASSIGN { //'='
+		lexer.NextToken()
+		expList = parseExpList(lexer)
+	}
+	lastLine := lexer.Line()
+	return &LocalVarDeclStat{LastLine: lastLine, NameList: nameList, ExpList: expList}
+}
+
+func parseLocalAssignOrFuncDefStat(lexer *Lexer) Stat {
+	lexer.NextTokenOfKind(TOKEN_KW_LOCAL)
+	if lexer.LookAhead() == TOKEN_KW_FUNCTION { //function
+		return _finishLocalFuncDefStat(lexer)
+	} else {
+		return _finishLocalVarDeclStat(lexer)
+	}
+}
+
+func _checkVar(lexer *Lexer, exp Exp) Exp {
+	switch exp.(type) {
+	case *NameExp, *TableAccessExp:
+		return exp
+	}
+	lexer.NextTokenOfKind(-1) // trigger error
+	panic("unreachable!")
+}
+
+func _finishVarList(lexer *Lexer, var0 Exp) []Exp {
+	vars := []Exp{_checkVar(lexer, var0)}      //var
+	for lexer.LookAhead() == TOKEN_SEP_COMMA { //','
+		lexer.NextToken()
+		exp := parsePrefixExp(lexer)
+		vars = append(vars, _checkVar(lexer, exp))
+	}
+	return vars
+}
+
+func parseAssignStat(lexer *Lexer, var0 Exp) *AssignStat {
+	varList := _finishVarList(lexer, var0) //varList
+	lexer.NextTokenOfKind(TOKEN_OP_ASSIGN) //`=`
+	expList := parseExpList(lexer)
+	lastLine := lexer.Line()
+	return &AssignStat{LastLine: lastLine, VarList: varList, ExpList: expList}
+
+}
+
+func parseAssignOrFuncCallStat(lexer *Lexer) Stat {
+	prefixExp := parsePrefixExp(lexer)
+	if fc, ok := prefixExp.(*FuncCallExp); ok {
+		return fc
+	} else {
+		return parseAssignStat(lexer, prefixExp)
+	}
+}
+
+func _parseFuncName(lexer *Lexer) (exp Exp, hasColon bool) {
+	line, name := lexer.NextIdentifier()
+	exp = &NameExp{Line: line, Name: name}
+	for lexer.LookAhead() == TOKEN_SEP_DOT {
+		lexer.NextToken()
+		line, name := lexer.NextIdentifier()
+		idx := &StringExp{Line: line, Str: name}
+		exp = &TableAccessExp{LastLine: line, PrefixExp: exp, KeyExp: idx}
+	}
+	if lexer.LookAhead() == TOKEN_SEP_COLON {
+		lexer.NextToken()
+		line, name := lexer.NextIdentifier()
+		idx := &StringExp{Line: line, Str: name}
+		exp = &TableAccessExp{LastLine: line, PrefixExp: exp, KeyExp: idx}
+		hasColon = true
+	}
+
+	return
+}
+
+func parseFuncDefStat(lexer *Lexer) *AssignStat {
+	lexer.NextTokenOfKind(TOKEN_KW_FUNCTION) //function
+	fnExp, hasColon := _parseFuncName(lexer) //func name
+	fd := parseFuncDefExp(lexer)             //func body
+
+	//v:name(args) => v.name(self,args)
+	if hasColon {
+		fdExp.ParList = append(fdExp.ParList, "")
+		copy(fdExp.ParList[1:], fdExp.ParList)
+		fdExp.ParList[0] = "self"
+	}
+
+	return &AssignStat{
+		LastLine: fdExp.Line,
+		VarList:  []Exp{fnExp},
+		ExpList:  []Exp{fdExp},
+	}
+}

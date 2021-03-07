@@ -1,6 +1,9 @@
 package parser
 
-import . "LuaGo/compiler/ast"
+import (
+	. "LuaGo/compiler/ast"
+	"LuaGo/number"
+)
 import . "LuaGo/compiler/lexer"
 
 // 把 , 的表达式连接起来
@@ -221,4 +224,51 @@ func parseExp0(lexer *Lexer) Exp {
 	default: // prefixexp
 		return parsePrefixExp(lexer)
 	}
+}
+
+func parseNumberExp(lexer *Lexer) Exp {
+	line, _, token := lexer.NextToken()
+	if i, ok := number.ParseInteger(token); ok {
+		return &IntegerExp{Line: line, Val: i}
+	} else if f, ok := number.ParseFloat(token); ok {
+		return &FloatExp{Line: line, Val: f}
+	} else {
+		panic("not a number :" + token)
+	}
+}
+
+func parseFuncDefExp(lexer *Lexer) *FuncDefExp {
+	line := lexer.Line()                      //关键字function 已经被读取了
+	lexer.NextTokenOfKind(TOKEN_SEP_LPAREN)   //`(`
+	parList, isVararg := _parseParList(lexer) //[parList]
+	lexer.NextTokenOfKind(TOKEN_SEP_RPAREN)   //`)`
+	block := parseBlock(lexer)                //block
+	lastLine, _ := lexer.NextTokenOfKind(TOKEN_KW_END)
+	return &FuncDefExp{Line: line, LastLine: lastLine, ParList: parList, IsVararg: isVararg, Block: block}
+}
+
+func _parseParList(lexer *Lexer) (names []string, isVararg bool) {
+	//( 已经被预测了
+	switch lexer.LookAhead() {
+	case TOKEN_SEP_RPAREN: //`)`
+		return nil, false
+	case TOKEN_VARARG: //`...`
+		lexer.NextToken()
+		return nil, true
+	}
+
+	_, name := lexer.NextIdentifier()
+	names = append(names, name)
+	for lexer.LookAhead() == TOKEN_SEP_COMMA { //`,`
+		lexer.NextToken()
+		if lexer.LookAhead() == TOKEN_IDENTIFIER { //var name
+			_, name := lexer.NextIdentifier()
+			names = append(names, name)
+		} else {
+			lexer.NextTokenOfKind(TOKEN_VARARG)
+			isVararg = true
+			break
+		}
+	}
+	return
 }

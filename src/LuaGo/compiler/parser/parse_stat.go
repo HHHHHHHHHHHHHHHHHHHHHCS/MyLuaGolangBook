@@ -108,7 +108,7 @@ func parseIfStat(lexer *Lexer) *IfStat {
 }
 
 func parseForStat(lexer *Lexer) Stat {
-	lineOfFor, _ = lexer.NextTokenOfKind(TOKEN_KW_FOR)
+	lineOfFor, _ := lexer.NextTokenOfKind(TOKEN_KW_FOR)
 	_, name := lexer.NextIdentifier()
 	//有 = 号  默认为 for ; ; do
 	//这里是偷懒的做法 要思考补齐
@@ -249,7 +249,7 @@ func _parseFuncName(lexer *Lexer) (exp Exp, hasColon bool) {
 func parseFuncDefStat(lexer *Lexer) *AssignStat {
 	lexer.NextTokenOfKind(TOKEN_KW_FUNCTION) //function
 	fnExp, hasColon := _parseFuncName(lexer) //func name
-	fd := parseFuncDefExp(lexer)             //func body
+	fdExp := parseFuncDefExp(lexer)             //func body
 
 	//v:name(args) => v.name(self,args)
 	if hasColon {

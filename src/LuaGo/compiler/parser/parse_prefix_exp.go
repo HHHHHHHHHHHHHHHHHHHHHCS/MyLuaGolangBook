@@ -3,6 +3,40 @@ package parser
 import . "LuaGo/compiler/ast"
 import . "LuaGo/compiler/lexer"
 
+func _parseNameExp(lexer *Lexer) *StringExp {
+	if lexer.LookAhead() == TOKEN_SEP_COLON {
+		lexer.NextToken() //`:`
+		line, name := lexer.NextIdentifier()
+		return &StringExp{Line: line, Str: name}
+	}
+	return nil
+}
+
+func _parseArgs(lexer *Lexer) (args []Exp) {
+	switch lexer.LookAhead() {
+	case TOKEN_SEP_LPAREN:
+		lexer.NextToken() //`(`
+		if lexer.LookAhead() != TOKEN_SEP_RPAREN {
+			args = parseExpList(lexer)
+		}
+		lexer.NextTokenOfKind(TOKEN_SEP_RPAREN) //`)`
+	case TOKEN_SEP_LCURLY: //{
+		args = []Exp{parseTableConstructorExp(lexer)}
+	default:
+		line, str := lexer.NextTokenOfKind(TOKEN_STRING)
+		args = []Exp{&StringExp{Line: line, Str: str}}
+	}
+	return
+}
+
+func _finishFuncCallExp(lexer *Lexer, prefixExp Exp) *FuncCallExp {
+	nameExp := _parseNameExp(lexer) //[`:` name]
+	line := lexer.Line()
+	args := _parseArgs(lexer)
+	lastLine := lexer.Line()
+	return &FuncCallExp{Line: line, LastLine: lastLine, PrefixExp: prefixExp, NameExp: nameExp, Args: args}
+}
+
 func _finishPrefixExp(lexer *Lexer, exp Exp) Exp {
 	for {
 		switch lexer.LookAhead() {

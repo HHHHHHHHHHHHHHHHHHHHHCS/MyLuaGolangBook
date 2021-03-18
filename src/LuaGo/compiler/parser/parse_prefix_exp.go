@@ -56,8 +56,8 @@ func _finishPrefixExp(lexer *Lexer, exp Exp) Exp {
 		default:
 			return exp
 		}
-		return exp
 	}
+	return exp
 }
 
 func parseParensExp(lexer *Lexer) Exp {

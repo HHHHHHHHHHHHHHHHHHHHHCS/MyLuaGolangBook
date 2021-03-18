@@ -67,6 +67,7 @@ func parseDoStat(lexer *Lexer) *DoStat {
 func parseWhileStat(lexer *Lexer) *WhileStat {
 	lexer.NextTokenOfKind(TOKEN_KW_WHILE) //while
 	exp := parseExp(lexer)                //exp
+	lexer.NextTokenOfKind(TOKEN_KW_DO)    // do
 	block := parseBlock(lexer)            //block
 	lexer.NextTokenOfKind(TOKEN_KW_END)   //end
 	return &WhileStat{Exp: exp, Block: block}
@@ -211,7 +212,7 @@ func _finishVarList(lexer *Lexer, var0 Exp) []Exp {
 func parseAssignStat(lexer *Lexer, var0 Exp) *AssignStat {
 	varList := _finishVarList(lexer, var0) //varList
 	lexer.NextTokenOfKind(TOKEN_OP_ASSIGN) //`=`
-	expList := parseExpList(lexer)
+	expList := parseExpList(lexer)         //expList
 	lastLine := lexer.Line()
 	return &AssignStat{LastLine: lastLine, VarList: varList, ExpList: expList}
 
@@ -229,6 +230,7 @@ func parseAssignOrFuncCallStat(lexer *Lexer) Stat {
 func _parseFuncName(lexer *Lexer) (exp Exp, hasColon bool) {
 	line, name := lexer.NextIdentifier()
 	exp = &NameExp{Line: line, Name: name}
+
 	for lexer.LookAhead() == TOKEN_SEP_DOT {
 		lexer.NextToken()
 		line, name := lexer.NextIdentifier()
@@ -249,7 +251,7 @@ func _parseFuncName(lexer *Lexer) (exp Exp, hasColon bool) {
 func parseFuncDefStat(lexer *Lexer) *AssignStat {
 	lexer.NextTokenOfKind(TOKEN_KW_FUNCTION) //function
 	fnExp, hasColon := _parseFuncName(lexer) //func name
-	fdExp := parseFuncDefExp(lexer)             //func body
+	fdExp := parseFuncDefExp(lexer)          //func body
 
 	//v:name(args) => v.name(self,args)
 	if hasColon {

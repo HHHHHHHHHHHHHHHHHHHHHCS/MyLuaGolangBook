@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var reNewLine = regexp.MustCompile(`\r\n|\n\r|\n|\r`)
+var reNewLine = regexp.MustCompile("\r\n|\n\r|\n|\r")
 var reIdentifier = regexp.MustCompile(`^[_\d\w]+`)
 var reNumber = regexp.MustCompile(`^0[xX][0-9a-fA-F]*(\.[0-9a-fA-F]*)?([pP][+\-]?[0-9]+)?|^[0-9]*(\.[0-9]*)?([eE][+\-]?[0-9]+)?`)
 var reShortStr = regexp.MustCompile(`(?s)(^'(\\\\|\\'|\\\n|\\z\s*|[^'\n])*')|(^"(\\\\|\\"|\\\n|\\z\s*|[^"\n])*")`)
@@ -16,7 +16,7 @@ var reOpeningLongBracket = regexp.MustCompile(`^\[=*\[`)
 
 var reDecEscapeSeq = regexp.MustCompile(`^\\[0-9]{1,3}`)
 var reHexEscapeSeq = regexp.MustCompile(`^\\x[0-9a-fA-F]{2}`)
-var reUnicodeEscapeSeq = regexp.MustCompile(`^\\u{[0-9a-fA-F]+}`)
+var reUnicodeEscapeSeq = regexp.MustCompile(`^\\u\{[0-9a-fA-F]+\}`)
 
 type Lexer struct {
 	chunk         string //源代码
@@ -72,7 +72,7 @@ func isDigit(c byte) bool {
 }
 
 //判断是字母
-func isLatter(c byte) bool {
+func isLetter(c byte) bool {
 	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
 }
 
@@ -273,7 +273,7 @@ func (self *Lexer) scanIdentifier() string {
 //预测下一个token
 func (self *Lexer) LookAhead() int {
 	if self.nextTokenLine > 0 {
-		return self.nextTokenLine
+		return self.nextTokenKind
 	}
 
 	currentLine := self.line
@@ -444,12 +444,12 @@ func (self *Lexer) NextToken() (line, kind int, token string) {
 	}
 
 	//关键字和变量扫描
-	if c == '_' || isLatter(c) {
+	if c == '_' || isLetter(c) {
 		token := self.scanIdentifier()
 		if kind, found := keywords[token]; found {
-			return line, kind, token //keyword
+			return self.line, kind, token //keyword
 		} else {
-			return line, TOKEN_IDENTIFIER, token
+			return self.line, TOKEN_IDENTIFIER, token
 		}
 	}
 

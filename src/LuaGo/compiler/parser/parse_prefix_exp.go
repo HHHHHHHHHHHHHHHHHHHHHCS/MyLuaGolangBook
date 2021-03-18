@@ -50,7 +50,7 @@ func _finishPrefixExp(lexer *Lexer, exp Exp) Exp {
 			line, name := lexer.NextIdentifier() //name
 			keyExp := &StringExp{Line: line, Str: name}
 			exp = &TableAccessExp{LastLine: line, PrefixExp: exp, KeyExp: keyExp}
-		case TOKEN_SEP_COLON, TOKEN_SEP_LABEL,
+		case TOKEN_SEP_COLON, TOKEN_SEP_LPAREN,
 			TOKEN_SEP_LCURLY, TOKEN_STRING:
 			exp = _finishFuncCallExp(lexer, exp) //[`:` name] args
 		default:

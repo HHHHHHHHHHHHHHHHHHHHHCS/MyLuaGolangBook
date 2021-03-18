@@ -2,8 +2,8 @@ package parser
 
 import (
 	. "LuaGo/compiler/ast"
+	. "LuaGo/compiler/lexer"
 )
-import . "LuaGo/compiler/lexer"
 
 func parseStat(lexer *Lexer) Stat {
 	switch lexer.LookAhead() {

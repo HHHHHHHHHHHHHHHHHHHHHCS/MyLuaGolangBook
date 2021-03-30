@@ -1,11 +1,13 @@
 package codegen
 
+import . "LuaGo/vm"
+
 type locVarInfo struct {
 	prev    *locVarInfo //上一层
 	name    string      //局部变量名字
 	scopeLv int         //作用域层级
 	slot    int         //绑定的索引
-	capture bool        //局部变量是否被闭包不火
+	capture bool        //局部变量是否引用的父亲(外部)
 }
 
 type funcInfo struct {
@@ -15,6 +17,16 @@ type funcInfo struct {
 	scopeLv   int                    //作用域层级
 	locVars   []*locVarInfo          //内部申明的全部局部变量
 	locNames  map[string]*locVarInfo //当前生效的局部变量
+	breaks    [][]int                //跳出块
+	parent    *funcInfo
+	upvalues  map[string]upvalInfo
+}
+
+//upvaltable  唯一的
+type upvalInfo struct {
+	locVarSlot int
+	upvalIndex int
+	index      int
 }
 
 func (self *funcInfo) indexOfConstant(k interface{}) int {
@@ -61,8 +73,13 @@ func (self *funcInfo) freeRegs(n int) {
 }
 
 //进入进一步作用域
-func (self *funcInfo) enterScope() {
+func (self *funcInfo) enterScope(breakable bool) {
 	self.scopeLv++
+	if breakable {
+		self.breaks = append(self.breaks, []int{}) //循环块
+	} else {
+		self.breaks = append(self.breaks, nil) //非循环块
+	}
 }
 
 //添加一个局部变量
@@ -98,10 +115,52 @@ func (self *funcInfo) removeLocVar(locVar *locVarInfo) {
 }
 
 func (self *funcInfo) exitScope() {
+	pendingBreakJmps := self.breaks[len(self.breaks)-1]
+	self.breaks = self.breaks[:len(self.breaks)-1]
+	a := self.getJmpArgA()
+	for _, pc := range pendingBreakJmps {
+		sBx := self.pc() - pc
+		i := (sBx+MAXRG_sBx)<<14 | a<<6 | OP_JMP
+		self.insts[pc] = uint32(i)
+	}
+
 	self.scopeLv--
 	for _, locVar := range self.locNames {
 		if locVar.scopeLv > self.scopeLv { //离开作用域
 			self.removeLocVar(locVar)
+		}
+	}
+}
+
+//添加break跳转
+func (self *funcInfo) addBreakJmp(pc int) {
+	for i := self.scopeLv; i >= 0; i-- {
+		if self.breaks[i] != nil {
+			self.breaks[i] = append(self.breaks[i], pc)
+			return
+		}
+	}
+	panic("<break> at line ? not inside a loop!")
+}
+
+//寻找upvaltable
+func (self *funcInfo) indexOfUpval(name string) int {
+	if upval, ok := self.upvalues[name]; ok {
+		return upval.index
+	}
+
+	if self.parent != nil {
+		if locVar, found := self.parent.locNames[name]; found {
+			idx := len(self.upvalues)
+			self.upvalues[name] = upvalInfo{locVar.slot, -1, idx}
+			locVar.capture = true
+			return idx
+		}
+
+		if uvIdx := self.parent.indexOfUpval(name); uvIdx >= 0 {
+			idx := len(self.upvalues)
+			self.upvalues[name] = upvalInfo{-1, uvIdx, idx}
+			return idx
 		}
 	}
 }

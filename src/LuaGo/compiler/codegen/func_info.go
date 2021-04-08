@@ -1,6 +1,9 @@
 package codegen
 
-import . "LuaGo/vm"
+import (
+	. "LuaGo/compiler/ast"
+	. "LuaGo/vm"
+)
 
 type locVarInfo struct {
 	prev    *locVarInfo //上一层
@@ -18,8 +21,12 @@ type funcInfo struct {
 	locVars   []*locVarInfo          //内部申明的全部局部变量
 	locNames  map[string]*locVarInfo //当前生效的局部变量
 	breaks    [][]int                //跳出块
-	parent    *funcInfo
-	upvalues  map[string]upvalInfo
+	parent    *funcInfo              //父func
+	upvalues  map[string]upvalInfo   //upValue
+	insts     []uint32               //指令
+	subFuncs  []*funcInfo            //子func信息 可能有多个
+	numParams int                    //参数数量
+	isVararg  bool                   //可变参数
 }
 
 //upvaltable  唯一的
@@ -27,6 +34,21 @@ type upvalInfo struct {
 	locVarSlot int
 	upvalIndex int
 	index      int
+}
+
+func newFuncInfo(parent *funcInfo, fd *FuncDefExp) *funcInfo {
+	return &funcInfo{
+		parent:    parent,
+		subFuncs:  []*funcInfo{},
+		constants: map[interface{}]int{},
+		upvalues:  map[string]upvalInfo{},
+		locNames:  map[string]*locVarInfo{},
+		locVars:   make([]*locVarInfo, 0, 8),
+		breaks:    make([][]int, 1),
+		insts:     make([]uint32, 0, 8),
+		isVararg:  fd.IsVararg,
+		numParams: len(fd.ParList),
+	}
 }
 
 func (self *funcInfo) indexOfConstant(k interface{}) int {
@@ -120,7 +142,7 @@ func (self *funcInfo) exitScope() {
 	a := self.getJmpArgA()
 	for _, pc := range pendingBreakJmps {
 		sBx := self.pc() - pc
-		i := (sBx+MAXRG_sBx)<<14 | a<<6 | OP_JMP
+		i := (sBx+MAXARG_sBx)<<14 | a<<6 | OP_JMP
 		self.insts[pc] = uint32(i)
 	}
 
@@ -163,4 +185,36 @@ func (self *funcInfo) indexOfUpval(name string) int {
 			return idx
 		}
 	}
+	return -1
+}
+
+func (self *funcInfo) emitABC(opcode, a, b, c int) {
+	i := b<<23 | c<<14 | a<<6 | opcode
+	self.insts = append(self.insts, uint32(i))
+}
+
+func (self *funcInfo) emitABx(opcode, a, bx int) {
+	i := bx<<14 | a<<6 | opcode
+	self.insts = append(self.insts, uint32(i))
+}
+
+func (self *funcInfo) emitAsBx(opcode, a, b int) {
+	i := (b+MAXARG_sBx)<<14 | a<<6 | opcode
+	self.insts = append(self.insts, uint32(i))
+}
+
+func (self *funcInfo) emitAx(opcode, ax int) {
+	i := ax<<6 | opcode
+	self.insts = append(self.insts, uint32(i))
+}
+
+func (self *funcInfo) pc() int {
+	return len(self.insts) - 1
+}
+
+func (self *funcInfo) fixSbx(pc, sBx int) {
+	i := self.insts[pc]
+	i = i << 18 >> 18                  //清除sbx操作数
+	i = i | uint32(sBx+MAXARG_sBx)<<14 //重置sbx操作数
+	self.insts[pc] = 1
 }

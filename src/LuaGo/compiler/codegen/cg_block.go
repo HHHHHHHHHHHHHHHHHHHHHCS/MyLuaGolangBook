@@ -31,7 +31,6 @@ func cgRetStat(fi *funcInfo, exps []Exp) {
 	for i, exp := range exps {
 		r := fi.allocReg()
 		//TODO:没有处理尾递归调用
-
 		if i == nExps-1 && multRet {
 			//多个返回值
 			cgExp(fi, exp, r, -1)

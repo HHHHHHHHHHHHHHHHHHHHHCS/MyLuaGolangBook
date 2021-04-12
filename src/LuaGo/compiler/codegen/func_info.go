@@ -188,6 +188,31 @@ func (self *funcInfo) indexOfUpval(name string) int {
 	return -1
 }
 
+
+
+func (self *funcInfo) getJmpArgA() int {
+	hasCapturedLocVars := false
+	minSlotOffLocVars := self.maxRegs
+	for _, locVar := range self.locNames {
+		if locVar.scopeLv == self.scopeLv {
+			for v := locVar; v != nil && v.scopeLv == self.scopeLv; v = v.prev {
+				if v.capture {
+					hasCapturedLocVars = true
+				}
+				if v.slot < minSlotOffLocVars && v.name[0] != '(' {
+					minSlotOffLocVars = v.slot
+				}
+			}
+		}
+	}
+
+	if hasCapturedLocVars {
+		return minSlotOffLocVars + 1
+	} else {
+		return 0
+	}
+}
+
 func (self *funcInfo) emitABC(opcode, a, b, c int) {
 	i := b<<23 | c<<14 | a<<6 | opcode
 	self.insts = append(self.insts, uint32(i))

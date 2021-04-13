@@ -237,6 +237,7 @@ func (self *funcInfo) pc() int {
 	return len(self.insts) - 1
 }
 
+// 14 - 18
 func (self *funcInfo) fixSbx(pc, sBx int) {
 	i := self.insts[pc]
 	i = i << 18 >> 18                  //清除sbx操作数

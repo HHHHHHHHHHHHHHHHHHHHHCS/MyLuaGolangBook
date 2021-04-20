@@ -2,6 +2,7 @@ package codegen
 
 import (
 	. "LuaGo/compiler/ast"
+	. "LuaGo/compiler/lexer"
 	. "LuaGo/vm"
 )
 
@@ -137,4 +138,85 @@ func cgTableConstructorExp(fi *funcInfo, node *TableConstructorExp, a int) {
 		fi.freeRegs(2)
 		fi.emitSetTable(a, b, c)
 	}
+}
+
+//一元表达式
+func cgUnopExp(fi *funcInfo, node *UnopExp, a int) {
+	b := fi.allocReg()
+	cgExp(fi, node.Exp, b, 1)
+	fi.emitUnaryOp(node.Op, a, b)
+	fi.freeReg()
+}
+
+//拼接字符串
+func cgConcatExp(fi *funcInfo, node *ConcatExp, a int) {
+	for _, subExp := range node.Exps {
+		a := fi.allocReg()
+		cgExp(fi, subExp, a, 1)
+	}
+
+	c := fi.usedRegs - 1
+	b := c - len(node.Exps) + 1
+	fi.freeRegs(c - b + 1)
+	fi.emitABC(OP_CONCAT, a, b, c)
+}
+
+//逻辑表达式  操作数需要特殊对待 需要生成testset 和 move
+//其它的生成临时变量求值就好了
+func cgBinopExp(fi *funcInfo, node *BinopExp, a int) {
+	switch node.Op {
+	case TOKEN_OP_ADD, TOKEN_OP_OR:
+		b := fi.allocReg()
+		cgExp(fi, node.Exp1, b, 1)
+		fi.freeReg()
+		if node.Op == TOKEN_OP_AND {
+			fi.emitTestSet(a, b, 0)
+		} else {
+			fi.emitTestSet(a, b, 1)
+		}
+		pcOfJmp := fi.emitJmp(0, 0)
+
+		b = fi.allocReg()
+		cgExp(fi, node.Exp2, b, 1)
+		fi.freeReg()
+		fi.emitMove(a, b)
+		fi.fixSbx(pcOfJmp, fi.pc()-pcOfJmp)
+	default:
+		b := fi.allocReg()
+		cgExp(fi, node.Exp1, b, 1)
+		c := fi.allocReg()
+		cgExp(fi, node.Exp2, c, 1)
+		fi.emitBinaryOp(node.Op, a, b, c)
+		fi.freeRegs(2)
+	}
+}
+
+func cgTableAccessExp(fi *funcInfo, node *TableAccessExp, a int) {
+	b := fi.allocReg()
+	cgExp(fi, node.PrefixExp, b, 1)
+	c := fi.allocReg()
+	cgExp(fi, node.KeyExp, c, 1)
+	fi.emitGetTable(a, b, c)
+	fi.freeRegs(2)
+}
+
+//局部变量则move     upvalue则getupval    全局变量则表访问
+func cgNameExp(fi *funcInfo, node *NameExp, a int) {
+	if r := fi.slotOfLocVar(node.Name); r >= 0 {
+		fi.emitMove(a, r)
+	} else if idx := fi.indexOfUpval(node.Name); idx >= 0 {
+		fi.emitGetUpval(a, idx)
+	} else { //x=>_ENV['x']
+		taExp := &TableAccessExp{
+			PrefixExp: &NameExp{Name: "_Env"},
+			KeyExp:    &StringExp{Str: node.Name},
+		}
+		cgTableAccessExp(fi, taExp, a)
+	}
+}
+
+//funcall 获取n个参数 call
+func cgFuncCallExp(fi *funcInfo, node *FuncCallExp, a, n int) {
+	nArgs := prepFuncCall(fi, node, a)
+	fi.emitCall(a, nArgs, n)
 }

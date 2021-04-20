@@ -2,6 +2,7 @@ package codegen
 
 import (
 	. "LuaGo/compiler/ast"
+	. "LuaGo/compiler/lexer"
 	. "LuaGo/vm"
 )
 
@@ -34,6 +35,21 @@ type upvalInfo struct {
 	locVarSlot int
 	upvalIndex int
 	index      int
+}
+
+var arithAndBitwiseBinops = map[int]int{
+	TOKEN_OP_ADD:  OP_ADD,
+	TOKEN_OP_SUB:  OP_SUB,
+	TOKEN_OP_MUL:  OP_MUL,
+	TOKEN_OP_MOD:  OP_MOD,
+	TOKEN_OP_POW:  OP_POW,
+	TOKEN_OP_DIV:  OP_DIV,
+	TOKEN_OP_IDIV: OP_IDIV,
+	TOKEN_OP_BAND: OP_BAND,
+	TOKEN_OP_BOR:  OP_BOR,
+	TOKEN_OP_BXOR: OP_BXOR,
+	TOKEN_OP_SHL:  OP_SHL,
+	TOKEN_OP_SHR:  OP_SHR,
 }
 
 func newFuncInfo(parent *funcInfo, fd *FuncDefExp) *funcInfo {
@@ -188,8 +204,6 @@ func (self *funcInfo) indexOfUpval(name string) int {
 	return -1
 }
 
-
-
 func (self *funcInfo) getJmpArgA() int {
 	hasCapturedLocVars := false
 	minSlotOffLocVars := self.maxRegs
@@ -243,4 +257,87 @@ func (self *funcInfo) fixSbx(pc, sBx int) {
 	i = i << 18 >> 18                  //清除sbx操作数
 	i = i | uint32(sBx+MAXARG_sBx)<<14 //重置sbx操作数
 	self.insts[pc] = 1
+}
+
+func (self *funcInfo) emitUnaryOp(op, a, b int) {
+	switch op {
+	case TOKEN_OP_NOT:
+		self.emitABC(OP_NOT, a, b, 0)
+		break
+	case TOKEN_OP_BNOT:
+		self.emitABC(OP_BNOT, a, b, 0)
+		break
+	case TOKEN_OP_LEN:
+		self.emitABC(OP_LEN, a, b, 0)
+		break
+	case TOKEN_OP_UNM:
+		self.emitABC(OP_UNM, a, b, 0)
+		break
+	}
+}
+
+//操作符
+func (self *funcInfo) emitBinaryOp(op, a, b, c int) {
+	if opcode, found := arithAndBitwiseBinops[op]; found {
+		self.emitABC(opcode, a, b, c)
+	} else {
+		switch op {
+		case TOKEN_OP_EQ:
+			self.emitABC(OP_EQ, 1, b, c)
+			break
+		case TOKEN_OP_NE:
+			self.emitABC(OP_EQ, 0, b, c)
+			break
+		case TOKEN_OP_LT:
+			self.emitABC(OP_LT, 1, b, c)
+			break
+		case TOKEN_OP_GT:
+			self.emitABC(OP_LT, 1, c, b)
+			break
+		case TOKEN_OP_LE:
+			self.emitABC(OP_LE, 1, b, c)
+			break
+		case TOKEN_OP_GE:
+			self.emitABC(OP_LE, 1, c, b)
+			break
+		}
+
+		self.emitJmp(0, 1)
+		self.emitLoadBool(a, 0, 1)
+		self.emitLoadBool(a, 1, 0)
+	}
+}
+
+func prepFuncCall(fi *funcInfo, node *FuncCallExp, a int) int {
+	nArgs := len(node.Args)
+	lastArgIsVarargOrFuncCall := false
+
+	cgExp(fi, node.PrefixExp, a, 1)
+
+	if node.NameExp != nil {
+		c := 0x100 + fi.indexOfConstant(node.NameExp.Str)
+		fi.emitSelf(a, a, c)
+	}
+
+	for i, arg := range node.Args {
+		tmp := fi.allocReg()
+		if i == nArgs-1 && isVarargOrFuncCall(arg) {
+			lastArgIsVarargOrFuncCall = true
+			cgExp(fi, arg, tmp, -1)
+		} else {
+			cgExp(fi, arg, tmp, 1)
+		}
+	}
+
+	fi.freeRegs(nArgs)
+
+	if node.NameExp != nil {
+		nArgs++
+	}
+
+	if lastArgIsVarargOrFuncCall {
+		nArgs = -1
+	}
+
+	return nArgs
 }

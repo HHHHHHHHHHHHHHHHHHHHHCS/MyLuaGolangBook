@@ -8,7 +8,7 @@ import (
 
 func cgExp(fi *funcInfo, node Exp, a, n int) {
 	switch exp := node.(type) {
-	case NilExp:
+	case *NilExp:
 		fi.emitLoadNil(a, n)
 		break
 	case *FalseExp:
@@ -80,10 +80,6 @@ func cgFuncDefExp(fi *funcInfo, node *FuncDefExp, a int) {
 
 	bx := len(fi.subFuncs) - 1
 	fi.emitClosure(a, bx) //退出
-}
-
-func (self *funcInfo) emitNewTable(a, nArr, nRec int) {
-	self.emitABC(OP_NEWTABLE, a, Int2fb(nArr), Int2fb(nRec))
 }
 
 //表构造表达式
@@ -220,3 +216,39 @@ func cgFuncCallExp(fi *funcInfo, node *FuncCallExp, a, n int) {
 	nArgs := prepFuncCall(fi, node, a)
 	fi.emitCall(a, nArgs, n)
 }
+
+
+func prepFuncCall(fi *funcInfo, node *FuncCallExp, a int) int {
+	nArgs := len(node.Args)
+	lastArgIsVarargOrFuncCall := false
+
+	cgExp(fi, node.PrefixExp, a, 1)
+
+	if node.NameExp != nil {
+		c := 0x100 + fi.indexOfConstant(node.NameExp.Str)
+		fi.emitSelf(a, a, c)
+	}
+
+	for i, arg := range node.Args {
+		tmp := fi.allocReg()
+		if i == nArgs-1 && isVarargOrFuncCall(arg) {
+			lastArgIsVarargOrFuncCall = true
+			cgExp(fi, arg, tmp, -1)
+		} else {
+			cgExp(fi, arg, tmp, 1)
+		}
+	}
+
+	fi.freeRegs(nArgs)
+
+	if node.NameExp != nil {
+		nArgs++
+	}
+
+	if lastArgIsVarargOrFuncCall {
+		nArgs = -1
+	}
+
+	return nArgs
+}
+

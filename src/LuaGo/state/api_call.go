@@ -3,13 +3,20 @@ package state
 import (
 	. "LuaGo/api"
 	"LuaGo/binchunk"
+	"LuaGo/compiler"
 	"LuaGo/vm"
 )
 
 //mode "b" 二进制 "t" 文本 "bt" 二进制或者文本
 //0 表示加载成功   非0 不成功
 func (self *luaState) Load(chunk []byte, chunkName, mode string) int {
-	proto := binchunk.Undump(chunk)
+	var proto *binchunk.Prototype
+	if binchunk.IsBinaryChunk(chunk) {
+		proto = binchunk.Undump(chunk)
+	} else {
+		proto = compiler.Compile(string(chunk), chunkName)
+	}
+
 	c := newLuaClosure(proto)
 	self.stack.push(c)
 	//设置_ENV

@@ -49,12 +49,7 @@ func cgDoStat(fi *funcInfo, node *DoStat) {
 	fi.exitScope()
 }
 
-func (self *funcInfo) closeOpenUpvals() {
-	a := self.getJmpArgA()
-	if a > 0 {
-		self.emitJmp(a, 0)
-	}
-}
+
 
 //	exp->true->block ->while循环
 //		->false->other

@@ -92,7 +92,7 @@ type Prototype struct {
 
 //Upvalues表  每个元素占2个字节
 type Upvalue struct {
-	Instack byte	//局部变量
+	Instack byte //局部变量
 	Idx     byte
 }
 
@@ -109,4 +109,8 @@ func Undump(data []byte) *Prototype {
 	reader.checkHeader()        //跳过头部检验
 	reader.readByte()           //跳过Upvalue数量
 	return reader.readProto("") //读取函数原型
+}
+
+func IsBinaryChunk(data []byte) bool {
+	return len(data) > 4 && string(data[:4]) == LUA_SIGNATURE
 }

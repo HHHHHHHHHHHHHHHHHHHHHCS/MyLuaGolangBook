@@ -8,29 +8,36 @@ func cgBlock(fi *funcInfo, node *Block) {
 	}
 
 	if node.RetExps != nil {
-		cgRetStat(fi, node.RetExps)
+		cgRetStat(fi, node.RetExps, node.LastLine)
 	}
 }
 
-func isVarargOrFuncCall(exp Exp) bool {
-	switch exp.(type) {
-	case *VarargExp, *FuncCallExp:
-		return true
-	}
-	return false
-}
-
-func cgRetStat(fi *funcInfo, exps []Exp) {
+func cgRetStat(fi *funcInfo, exps []Exp, lastLine int) {
 	nExps := len(exps)
 	if nExps == 0 { //直接使用return 后面没有东西了
-		fi.emitReturn(0, 0)
+		fi.emitReturn(lastLine, 0, 0)
 		return
+	}
+
+	if nExps == 1 {
+		if nameExp, ok := exps[0].(*NameExp); ok {
+			if r := fi.slotOfLocVar(nameExp.Name); r >= 0 {
+				fi.emitReturn(lastLine, r, 1)
+				return
+			}
+		}
+		if fcExp, ok := exps[0].(*FuncCallExp); ok {
+			r := fi.allocReg()
+			cgTailCallExp(fi, fcExp, r)
+			fi.freeReg()
+			fi.emitReturn(lastLine, r, -1)
+			return
+		}
 	}
 
 	multRet := isVarargOrFuncCall(exps[nExps-1])
 	for i, exp := range exps {
 		r := fi.allocReg()
-		//TODO:没有处理尾递归调用
 		if i == nExps-1 && multRet {
 			//多个返回值
 			cgExp(fi, exp, r, -1)
@@ -44,8 +51,8 @@ func cgRetStat(fi *funcInfo, exps []Exp) {
 	fi.freeRegs(nExps)
 	a := fi.usedRegs
 	if multRet {
-		fi.emitReturn(a, -1)
+		fi.emitReturn(lastLine, a, -1)
 	} else {
-		fi.emitReturn(a, nExps)
+		fi.emitReturn(lastLine, a, nExps)
 	}
 }

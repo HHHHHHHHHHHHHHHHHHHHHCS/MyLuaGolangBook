@@ -6,37 +6,6 @@ import (
 	. "LuaGo/vm"
 )
 
-type locVarInfo struct {
-	prev    *locVarInfo //上一层
-	name    string      //局部变量名字
-	scopeLv int         //作用域层级
-	slot    int         //绑定的索引
-	capture bool        //局部变量是否引用的父亲(外部)
-}
-
-type funcInfo struct {
-	constants map[interface{}]int    //常量表
-	usedRegs  int                    //已经使用的寄存器
-	maxRegs   int                    //最大寄存器
-	scopeLv   int                    //作用域层级
-	locVars   []*locVarInfo          //内部申明的全部局部变量
-	locNames  map[string]*locVarInfo //当前生效的局部变量
-	breaks    [][]int                //跳出块
-	parent    *funcInfo              //父func
-	upvalues  map[string]upvalInfo   //upValue
-	insts     []uint32               //指令
-	subFuncs  []*funcInfo            //子func信息 可能有多个
-	numParams int                    //参数数量
-	isVararg  bool                   //可变参数
-}
-
-//upvaltable  唯一的
-type upvalInfo struct {
-	locVarSlot int
-	upvalIndex int
-	index      int
-}
-
 var arithAndBitwiseBinops = map[int]int{
 	TOKEN_OP_ADD:  OP_ADD,
 	TOKEN_OP_SUB:  OP_SUB,
@@ -52,21 +21,61 @@ var arithAndBitwiseBinops = map[int]int{
 	TOKEN_OP_SHR:  OP_SHR,
 }
 
+//upvaltable  唯一的
+type upvalInfo struct {
+	locVarSlot int
+	upvalIndex int
+	index      int
+}
+
+type locVarInfo struct {
+	prev     *locVarInfo //上一层
+	name     string      //局部变量名字
+	scopeLv  int         //作用域层级
+	slot     int         //绑定的索引
+	startPC  int         //开是指令位置
+	endPC    int         //结束指令位置
+	captured bool        //局部变量是否引用的父亲(外部)
+}
+
+type funcInfo struct {
+	parent    *funcInfo              //父func
+	subFuncs  []*funcInfo            //子func信息 可能有多个
+	usedRegs  int                    //已经使用的寄存器
+	maxRegs   int                    //最大寄存器
+	scopeLv   int                    //作用域层级
+	locVars   []*locVarInfo          //内部申明的全部局部变量
+	locNames  map[string]*locVarInfo //当前生效的局部变量
+	upvalues  map[string]upvalInfo   //upValue
+	constants map[interface{}]int    //常量表
+	breaks    [][]int                //跳出块
+	insts     []uint32               //指令
+	lineNums  []uint32               //几行数组
+	line      int                    //行开始
+	lastLine  int                    //最后一行
+	numParams int                    //参数数量
+	isVararg  bool                   //可变参数
+}
+
 func newFuncInfo(parent *funcInfo, fd *FuncDefExp) *funcInfo {
 	return &funcInfo{
 		parent:    parent,
 		subFuncs:  []*funcInfo{},
-		constants: map[interface{}]int{},
-		upvalues:  map[string]upvalInfo{},
-		locNames:  map[string]*locVarInfo{},
 		locVars:   make([]*locVarInfo, 0, 8),
+		locNames:  map[string]*locVarInfo{},
+		upvalues:  map[string]upvalInfo{},
+		constants: map[interface{}]int{},
 		breaks:    make([][]int, 1),
 		insts:     make([]uint32, 0, 8),
-		isVararg:  fd.IsVararg,
+		lineNums:  make([]uint32, 0, 8),
+		line:      fd.Line,
+		lastLine:  fd.LastLine,
 		numParams: len(fd.ParList),
+		isVararg:  fd.IsVararg,
 	}
 }
 
+/* constants */
 func (self *funcInfo) indexOfConstant(k interface{}) int {
 	if idx, found := self.constants[k]; found {
 		return idx
@@ -77,12 +86,12 @@ func (self *funcInfo) indexOfConstant(k interface{}) int {
 	return idx
 }
 
-//分配寄存器
+//分配一个寄存器
 func (self *funcInfo) allocReg() int {
 	self.usedRegs++
 	//不能超过255 是因为指令的长度限制
-	if self.usedRegs > 255 {
-		panic("function or expression needs to many registers")
+	if self.usedRegs >= 255 {
+		panic("function or expression needs too many registers")
 	}
 	if self.usedRegs > self.maxRegs {
 		self.maxRegs = self.usedRegs
@@ -90,21 +99,30 @@ func (self *funcInfo) allocReg() int {
 	return self.usedRegs - 1
 }
 
+//回收一个
+func (self *funcInfo) freeReg() {
+	if self.usedRegs <= 0 {
+		panic("usedRegs <= 0 !")
+	}
+	self.usedRegs--
+}
+
 //分配n个
 func (self *funcInfo) allocRegs(n int) int {
+	if n <= 0 {
+		panic("n <= 0 !")
+	}
 	for i := 0; i < n; i++ {
 		self.allocReg()
 	}
 	return self.usedRegs - n
 }
 
-//回收一个
-func (self *funcInfo) freeReg() {
-	self.usedRegs--
-}
-
 //回收n个
 func (self *funcInfo) freeRegs(n int) {
+	if n < 0 {
+		panic("n < 0 !")
+	}
 	for i := 0; i < n; i++ {
 		self.freeReg()
 	}
@@ -120,25 +138,24 @@ func (self *funcInfo) enterScope(breakable bool) {
 	}
 }
 
-//添加一个局部变量
-func (self *funcInfo) addLocVar(name string) int {
-	newVar := &locVarInfo{
-		name:    name,
-		prev:    self.locNames[name],
-		scopeLv: self.scopeLv,
-		slot:    self.allocReg(),
-	}
-	self.locVars = append(self.locVars, newVar)
-	self.locNames[name] = newVar
-	return newVar.slot
-}
+func (self *funcInfo) exitScope(endPC int) {
+	pendingBreakJmps := self.breaks[len(self.breaks)-1]
+	self.breaks = self.breaks[:len(self.breaks)-1]
 
-//是否存在这个局部变量 没有返回-1
-func (self *funcInfo) slotOfLocVar(name string) int {
-	if locVar, found := self.locNames[name]; found {
-		return locVar.slot
+	a := self.getJmpArgA()
+	for _, pc := range pendingBreakJmps {
+		sBx := self.pc() - pc
+		i := (sBx+MAXARG_sBx)<<14 | a<<6 | OP_JMP
+		self.insts[pc] = uint32(i)
 	}
-	return -1
+
+	self.scopeLv--
+	for _, locVar := range self.locNames {
+		if locVar.scopeLv > self.scopeLv { //离开作用域
+			locVar.endPC = endPC
+			self.removeLocVar(locVar)
+		}
+	}
 }
 
 func (self *funcInfo) removeLocVar(locVar *locVarInfo) {
@@ -152,22 +169,27 @@ func (self *funcInfo) removeLocVar(locVar *locVarInfo) {
 	}
 }
 
-func (self *funcInfo) exitScope() {
-	pendingBreakJmps := self.breaks[len(self.breaks)-1]
-	self.breaks = self.breaks[:len(self.breaks)-1]
-	a := self.getJmpArgA()
-	for _, pc := range pendingBreakJmps {
-		sBx := self.pc() - pc
-		i := (sBx+MAXARG_sBx)<<14 | a<<6 | OP_JMP
-		self.insts[pc] = uint32(i)
+//添加一个局部变量
+func (self *funcInfo) addLocVar(name string, startPC int) int {
+	newVar := &locVarInfo{
+		name:    name,
+		prev:    self.locNames[name],
+		scopeLv: self.scopeLv,
+		slot:    self.allocReg(),
+		startPC: startPC,
+		endPC:   0,
 	}
+	self.locVars = append(self.locVars, newVar)
+	self.locNames[name] = newVar
+	return newVar.slot
+}
 
-	self.scopeLv--
-	for _, locVar := range self.locNames {
-		if locVar.scopeLv > self.scopeLv { //离开作用域
-			self.removeLocVar(locVar)
-		}
+//是否存在这个局部变量 没有返回-1
+func (self *funcInfo) slotOfLocVar(name string) int {
+	if locVar, found := self.locNames[name]; found {
+		return locVar.slot
 	}
+	return -1
 }
 
 //添加break跳转
@@ -191,7 +213,7 @@ func (self *funcInfo) indexOfUpval(name string) int {
 		if locVar, found := self.parent.locNames[name]; found {
 			idx := len(self.upvalues)
 			self.upvalues[name] = upvalInfo{locVar.slot, -1, idx}
-			locVar.capture = true
+			locVar.captured = true
 			return idx
 		}
 
@@ -204,47 +226,34 @@ func (self *funcInfo) indexOfUpval(name string) int {
 	return -1
 }
 
+func (self *funcInfo) closeOpenUpvals(line int) {
+	a := self.getJmpArgA()
+	if a > 0 {
+		self.emitJmp(line, a, 0)
+	}
+}
+
 func (self *funcInfo) getJmpArgA() int {
 	hasCapturedLocVars := false
-	minSlotOffLocVars := self.maxRegs
+	minSlotOfLocVars := self.maxRegs
 	for _, locVar := range self.locNames {
 		if locVar.scopeLv == self.scopeLv {
 			for v := locVar; v != nil && v.scopeLv == self.scopeLv; v = v.prev {
-				if v.capture {
+				if v.captured {
 					hasCapturedLocVars = true
 				}
-				if v.slot < minSlotOffLocVars && v.name[0] != '(' {
-					minSlotOffLocVars = v.slot
+				if v.slot < minSlotOfLocVars && v.name[0] != '(' {
+					minSlotOfLocVars = v.slot
 				}
 			}
 		}
 	}
 
 	if hasCapturedLocVars {
-		return minSlotOffLocVars + 1
+		return minSlotOfLocVars + 1
 	} else {
 		return 0
 	}
-}
-
-func (self *funcInfo) emitABC(opcode, a, b, c int) {
-	i := b<<23 | c<<14 | a<<6 | opcode
-	self.insts = append(self.insts, uint32(i))
-}
-
-func (self *funcInfo) emitABx(opcode, a, bx int) {
-	i := bx<<14 | a<<6 | opcode
-	self.insts = append(self.insts, uint32(i))
-}
-
-func (self *funcInfo) emitAsBx(opcode, a, b int) {
-	i := (b+MAXARG_sBx)<<14 | a<<6 | opcode
-	self.insts = append(self.insts, uint32(i))
-}
-
-func (self *funcInfo) emitAx(opcode, ax int) {
-	i := ax<<6 | opcode
-	self.insts = append(self.insts, uint32(i))
 }
 
 func (self *funcInfo) pc() int {
@@ -256,88 +265,220 @@ func (self *funcInfo) fixSbx(pc, sBx int) {
 	i := self.insts[pc]
 	i = i << 18 >> 18                  //清除sbx操作数
 	i = i | uint32(sBx+MAXARG_sBx)<<14 //重置sbx操作数
-	self.insts[pc] = 1
+	self.insts[pc] = i
 }
 
-func (self *funcInfo) emitUnaryOp(op, a, b int) {
+// todo: rename?
+func (self *funcInfo) fixEndPC(name string, delta int) {
+	for i := len(self.locVars) - 1; i >= 0; i-- {
+		locVar := self.locVars[i]
+		if locVar.name == name {
+			locVar.endPC += delta
+			return
+		}
+	}
+}
+
+func (self *funcInfo) emitABC(line, opcode, a, b, c int) {
+	i := b<<23 | c<<14 | a<<6 | opcode
+	self.insts = append(self.insts, uint32(i))
+	self.lineNums = append(self.lineNums, uint32(line))
+}
+
+func (self *funcInfo) emitABx(line, opcode, a, bx int) {
+	i := bx<<14 | a<<6 | opcode
+	self.insts = append(self.insts, uint32(i))
+	self.lineNums = append(self.lineNums, uint32(line))
+}
+
+func (self *funcInfo) emitAsBx(line, opcode, a, b int) {
+	i := (b+MAXARG_sBx)<<14 | a<<6 | opcode
+	self.insts = append(self.insts, uint32(i))
+	self.lineNums = append(self.lineNums, uint32(line))
+}
+
+func (self *funcInfo) emitAx(line, opcode, ax int) {
+	i := ax<<6 | opcode
+	self.insts = append(self.insts, uint32(i))
+	self.lineNums = append(self.lineNums, uint32(line))
+}
+
+//r[a] = r[b]
+func (self *funcInfo) emitMove(line, a, b int) {
+	self.emitABC(line, OP_MOVE, a, b, 0)
+}
+
+//r[a],r[a+1],..,r[a+b] = nil
+func (self *funcInfo) emitLoadNil(line, a, n int) {
+	self.emitABC(line, OP_LOADNIL, a, n-1, 0)
+}
+
+//r[a] = (bool)b; if(c) pc++
+func (self *funcInfo) emitLoadBool(line, a, b, c int) {
+	self.emitABC(line, OP_LOADBOOL, a, b, c)
+}
+
+//r[a] = kst[bx]
+func (self *funcInfo) emitLoadK(line, a int, k interface{}) {
+	idx := self.indexOfConstant(k)
+	if idx < (1 << 18) {
+		self.emitABx(line, OP_LOADK, a, idx)
+	} else {
+		self.emitABx(line, OP_LOADKX, a, 0)
+		self.emitAx(line, OP_EXTRAARG, idx)
+	}
+}
+
+//r[a],r[a+1],...,r[a+b+2] = vararg
+func (self *funcInfo) emitVararg(line, a, n int) {
+	self.emitABC(line, OP_VARARG, a, n+1, 0)
+}
+
+//r[a] = emitClosure(proto[bx])
+func (self *funcInfo) emitClosure(line, a, bx int) {
+	self.emitABx(line, OP_CLOSURE, a, bx)
+}
+
+//r[a] = {}
+func (self *funcInfo) emitNewTable(line, a, nArr, nRec int) {
+	self.emitABC(line, OP_NEWTABLE,
+		a, Int2fb(nArr), Int2fb(nRec))
+}
+
+//r[a][(c-1)*FPF+i] := r[a+i],  1 <= i <=b
+func (self *funcInfo) emitSetList(line, a, b, c int) {
+	self.emitABC(line, OP_SETLIST, a, b, c)
+}
+
+//r[a] := r[b][rk(c)]
+func (self *funcInfo) emitGetTable(line, a, b, c int) {
+	self.emitABC(line, OP_GETTABLE, a, b, c)
+}
+
+//r[a][rk(b)] = rk(c)
+func (self *funcInfo) emitSetTable(line, a, b, c int) {
+	self.emitABC(line, OP_SETTABLE, a, b, c)
+}
+
+// r[a] = upval[b]
+func (self *funcInfo) emitGetUpval(line, a, b int) {
+	self.emitABC(line, OP_GETUPVAL, a, b, 0)
+}
+
+// upval[b] = r[a]
+func (self *funcInfo) emitSetUpval(line, a, b int) {
+	self.emitABC(line, OP_SETUPVAL, a, b, 0)
+}
+
+// r[a] = upval[b][rk(c)]
+func (self *funcInfo) emitGetTabUp(line, a, b, c int) {
+	self.emitABC(line, OP_GETTABUP, a, b, c)
+}
+
+// upval[a][rk(b)] = rk(c)
+func (self *funcInfo) emitSetTabUp(line, a, b, c int) {
+	self.emitABC(line, OP_SETTABUP, a, b, c)
+}
+
+// r[a], ..., r[a+c-2] = r[a](r[a+1], ..., r[a+b-1])
+func (self *funcInfo) emitCall(line, a, nArgs, nRet int) {
+	self.emitABC(line, OP_CALL, a, nArgs+1, nRet+1)
+}
+
+// return r[a](r[a+1], ... ,r[a+b-1])
+func (self *funcInfo) emitTailCall(line, a, nArgs int) {
+	self.emitABC(line, OP_TAILCALL, a, nArgs+1, 0)
+}
+
+// return r[a], ... ,r[a+b-2]
+func (self *funcInfo) emitReturn(line, a, n int) {
+	self.emitABC(line, OP_RETURN, a, n+1, 0)
+}
+
+// r[a+1] := r[b]; r[a] := r[b][rk(c)]
+func (self *funcInfo) emitSelf(line, a, b, c int) {
+	self.emitABC(line, OP_SELF, a, b, c)
+}
+
+// pc+=sBx; if (a) close all upvalues >= r[a - 1]
+func (self *funcInfo) emitJmp(line, a, sBx int) int {
+	self.emitAsBx(line, OP_JMP, a, sBx)
+	return len(self.insts) - 1
+}
+
+// if not (r[a] <=> c) then pc++
+func (self *funcInfo) emitTest(line, a, c int) {
+	self.emitABC(line, OP_TEST, a, 0, c)
+}
+
+// if (r[b] <=> c) then r[a] := r[b] else pc++
+func (self *funcInfo) emitTestSet(line, a, b, c int) {
+	self.emitABC(line, OP_TESTSET, a, b, c)
+}
+
+func (self *funcInfo) emitForPrep(line, a, sBx int) int {
+	self.emitAsBx(line, OP_FORPREP, a, sBx)
+	return len(self.insts) - 1
+}
+
+func (self *funcInfo) emitForLoop(line, a, sBx int) int {
+	self.emitAsBx(line, OP_FORLOOP, a, sBx)
+	return len(self.insts) - 1
+}
+
+func (self *funcInfo) emitTForCall(line, a, c int) {
+	self.emitABC(line, OP_TFORCALL, a, 0, c)
+}
+
+func (self *funcInfo) emitTForLoop(line, a, sBx int) {
+	self.emitAsBx(line, OP_TFORLOOP, a, sBx)
+}
+
+func (self *funcInfo) emitUnaryOp(line, op, a, b int) {
 	switch op {
 	case TOKEN_OP_NOT:
-		self.emitABC(OP_NOT, a, b, 0)
+		self.emitABC(line, OP_NOT, a, b, 0)
 		break
 	case TOKEN_OP_BNOT:
-		self.emitABC(OP_BNOT, a, b, 0)
+		self.emitABC(line, OP_BNOT, a, b, 0)
 		break
 	case TOKEN_OP_LEN:
-		self.emitABC(OP_LEN, a, b, 0)
+		self.emitABC(line, OP_LEN, a, b, 0)
 		break
 	case TOKEN_OP_UNM:
-		self.emitABC(OP_UNM, a, b, 0)
+		self.emitABC(line, OP_UNM, a, b, 0)
 		break
 	}
 }
 
 //操作符
-func (self *funcInfo) emitBinaryOp(op, a, b, c int) {
+func (self *funcInfo) emitBinaryOp(line, op, a, b, c int) {
 	if opcode, found := arithAndBitwiseBinops[op]; found {
-		self.emitABC(opcode, a, b, c)
+		self.emitABC(line, opcode, a, b, c)
 	} else {
 		switch op {
 		case TOKEN_OP_EQ:
-			self.emitABC(OP_EQ, 1, b, c)
+			self.emitABC(line, OP_EQ, 1, b, c)
 			break
 		case TOKEN_OP_NE:
-			self.emitABC(OP_EQ, 0, b, c)
+			self.emitABC(line, OP_EQ, 0, b, c)
 			break
 		case TOKEN_OP_LT:
-			self.emitABC(OP_LT, 1, b, c)
+			self.emitABC(line, OP_LT, 1, b, c)
 			break
 		case TOKEN_OP_GT:
-			self.emitABC(OP_LT, 1, c, b)
+			self.emitABC(line, OP_LT, 1, c, b)
 			break
 		case TOKEN_OP_LE:
-			self.emitABC(OP_LE, 1, b, c)
+			self.emitABC(line, OP_LE, 1, b, c)
 			break
 		case TOKEN_OP_GE:
-			self.emitABC(OP_LE, 1, c, b)
+			self.emitABC(line, OP_LE, 1, c, b)
 			break
 		}
 
-		self.emitJmp(0, 1)
-		self.emitLoadBool(a, 0, 1)
-		self.emitLoadBool(a, 1, 0)
+		self.emitJmp(line, 0, 1)
+		self.emitLoadBool(line, a, 0, 1)
+		self.emitLoadBool(line, a, 1, 0)
 	}
-}
-
-func prepFuncCall(fi *funcInfo, node *FuncCallExp, a int) int {
-	nArgs := len(node.Args)
-	lastArgIsVarargOrFuncCall := false
-
-	cgExp(fi, node.PrefixExp, a, 1)
-
-	if node.NameExp != nil {
-		c := 0x100 + fi.indexOfConstant(node.NameExp.Str)
-		fi.emitSelf(a, a, c)
-	}
-
-	for i, arg := range node.Args {
-		tmp := fi.allocReg()
-		if i == nArgs-1 && isVarargOrFuncCall(arg) {
-			lastArgIsVarargOrFuncCall = true
-			cgExp(fi, arg, tmp, -1)
-		} else {
-			cgExp(fi, arg, tmp, 1)
-		}
-	}
-
-	fi.freeRegs(nArgs)
-
-	if node.NameExp != nil {
-		nArgs++
-	}
-
-	if lastArgIsVarargOrFuncCall {
-		nArgs = -1
-	}
-
-	return nArgs
 }

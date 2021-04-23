@@ -52,6 +52,17 @@ type DoStat struct {
 //调用函数 可以是语句也可以是表达式
 type FuncCallStat = FuncCallExp
 
+//if语句
+//if exp then block {elseif exp then block} [else block] end
+//如果把最后的else 看做 elseif true 则可以缩写为
+//if exp then block {elseif exp then block} [elseif true then block] end
+//if exp then block {elseif exp then block} end
+//索引0是 if then 其余都是 elseif
+type IfStat struct {
+	Exps   []Exp
+	Blocks []*Block
+}
+
 //while循环
 //while exp do block end
 type WhileStat struct {
@@ -66,16 +77,7 @@ type RepeatStat struct {
 	Exp   Exp
 }
 
-//if语句
-//if exp then block {elseif exp then block} [else block] end
-//如果把最后的else 看做 elseif true 则可以缩写为
-//if exp then block {elseif exp then block} [elseif true then block] end
-//if exp then block {elseif exp then block} end
-//索引0是 if then 其余都是 elseif
-type IfStat struct {
-	Exps   []Exp
-	Blocks []*Block
-}
+
 
 //for循环
 //for Name '=' exp ',' [',' exp] do block end
@@ -100,6 +102,18 @@ type ForInStat struct {
 	Block    *Block
 }
 
+//赋值语句
+//varlist '=' explist
+//varlist ::= var {',' var}
+//var :: Name | prefixexp '[' exp ']' | prefixexp '.' Name
+//explist ::= exp {',' exp}
+type AssignStat struct {
+	LastLine int
+	VarList  []Exp
+	ExpList  []Exp
+}
+
+
 //local变量申明
 //要把末尾行号记录下来 以供生成阶段使用
 //local namelist ['=' explist]
@@ -111,16 +125,6 @@ type LocalVarDeclStat struct {
 	ExpList  []Exp
 }
 
-//赋值语句
-//varlist '=' explist
-//varlist ::= var {',' var}
-//var :: Name | prefixexp '[' exp ']' | prefixexp '.' Name
-//explist ::= exp {',' exp}
-type AssignStat struct {
-	LastLine int
-	VarList  []Exp
-	ExpList  []Exp
-}
 
 //非局部函数
 //function funcName funcBody

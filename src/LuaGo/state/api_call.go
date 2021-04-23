@@ -24,7 +24,7 @@ func (self *luaState) Load(chunk []byte, chunkName, mode string) int {
 		env := self.registry.get(LUA_RIDX_GLOBALS)
 		c.upvals[0] = &upvalue{&env}
 	}
-	return 0
+	return LUA_OK
 }
 
 //正常闭包在栈顶-nArgs的位置  所以 nArgs 是参数位置 同时也暗示告诉包的位置
@@ -56,6 +56,26 @@ func (self *luaState) Call(nArgs, nResults int) {
 	}
 }
 
+func (self *luaState) callGoClosure(nArgs, nResults int, c *closure) {
+	newStack := newLuaStack(nArgs+LUA_MINSTACK, self)
+	newStack.closure = c
+
+	if nArgs > 0 {
+		args := self.stack.popN(nArgs)
+		newStack.pushN(args, nArgs)
+	}
+	self.stack.pop()
+
+	self.pushLuaStack(newStack)
+	r := c.goFunc(self)
+	self.popLuaStack()
+
+	if nResults != 0 {
+		results := newStack.popN(r)
+		self.stack.check(len(results))
+		self.stack.pushN(results, nResults)
+	}
+}
 func (self *luaState) callLuaClosure(nArgs, nResults int, c *closure) {
 	nRegs := int(c.proto.MaxStackSize)
 	nParams := int(c.proto.NumParams)
@@ -95,26 +115,7 @@ func (self *luaState) runLuaClosure() {
 	}
 }
 
-func (self *luaState) callGoClosure(nArgs, nResults int, c *closure) {
-	newStack := newLuaStack(nArgs+LUA_MINSTACK, self)
-	newStack.closure = c
 
-	if nArgs > 0 {
-		args := self.stack.popN(nArgs)
-		newStack.pushN(args, nArgs)
-	}
-	self.stack.pop()
-
-	self.pushLuaStack(newStack)
-	r := c.goFunc(self)
-	self.popLuaStack()
-
-	if nResults != 0 {
-		results := newStack.popN(r)
-		self.stack.check(len(results))
-		self.stack.pushN(results, nResults)
-	}
-}
 
 func (self *luaState) PCall(nArgs, nResults, msgh int) (status int) {
 	caller := self.stack
@@ -124,6 +125,9 @@ func (self *luaState) PCall(nArgs, nResults, msgh int) (status int) {
 		//recover是一个从panic恢复的内建函数。
 		//recover只有在defer的函数里面才能发挥真正的作用
 		if err := recover(); err != nil {
+			if msgh != 0 {
+				panic(err)
+			}
 			for self.stack != caller {
 				self.popLuaStack()
 			}

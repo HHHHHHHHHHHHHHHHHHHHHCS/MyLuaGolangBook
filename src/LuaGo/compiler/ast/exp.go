@@ -20,10 +20,6 @@ type StringExp struct {
 	Line int
 	Str  string
 }
-type NameExp struct {
-	Line int
-	Name string
-}
 
 //运算符表达式
 //------------
@@ -49,6 +45,18 @@ type ConcatExp struct {
 	Exps []Exp
 }
 
+//表的构造表达式
+//tableconstructor ::= '{' [fieldlist] '}'
+//fieldlist ::= field {fieldsep field}[fieldsep]
+//field ::= '[' exp ']' '=' exp | Name '=' exp | exp
+//fieldsep ::= ',' | ';'
+type TableConstructorExp struct {
+	Line     int //line of '{'
+	LastLine int //line of '}'
+	KeyExps  []Exp
+	ValExps  []Exp
+}
+
 //方法表达式
 type FuncDefExp struct {
 	Line     int
@@ -56,6 +64,11 @@ type FuncDefExp struct {
 	ParList  []string
 	IsVararg bool
 	Block    *Block
+}
+
+type NameExp struct {
+	Line int
+	Name string
 }
 
 //圆括号表达式
@@ -79,14 +92,3 @@ type FuncCallExp struct {
 	Args      []Exp
 }
 
-//表的构造表达式
-//tableconstructor ::= '{' [fieldlist] '}'
-//fieldlist ::= field {fieldsep field}[fieldsep]
-//field ::= '[' exp ']' '=' exp | Name '=' exp | exp
-//fieldsep ::= ',' | ';'
-type TableConstructorExp struct {
-	Line     int //line of '{'
-	LastLine int //line of '}'
-	KeyExps  []Exp
-	ValExps  []Exp
-}

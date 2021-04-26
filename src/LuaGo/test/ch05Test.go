@@ -29,7 +29,7 @@ func (test *CH05Test) DoTest() {
 	test.printStack(ls)
 }
 
-func (test *CH05Test) printStack(ls LuaState) {
+func (test *CH05Test) printStack(ls BasicAPI) {
 	top := ls.GetTop()
 	for i := 1; i <= top; i++ {
 		t := ls.Type(i)

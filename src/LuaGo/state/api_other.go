@@ -16,7 +16,7 @@ func (ls *luaState) RegisterOtherAPI() {
 	ls.Register("pcall", __pCall)
 }
 
-func __print(ls LuaState) int {
+func __print(ls BasicAPI) int {
 	nArgs := ls.GetTop()
 	for i := 1; i <= nArgs; i++ {
 		if ls.IsBoolean(i) {
@@ -34,19 +34,19 @@ func __print(ls LuaState) int {
 	return 0
 }
 
-func __getMetatable(ls LuaState) int {
+func __getMetatable(ls BasicAPI) int {
 	if !ls.GetMetatable(1) {
 		ls.PushNil()
 	}
 	return 1
 }
 
-func __setMetatable(ls LuaState) int {
+func __setMetatable(ls BasicAPI) int {
 	ls.SetMetatable(1)
 	return 1
 }
 
-func __next(ls LuaState) int {
+func __next(ls BasicAPI) int {
 	ls.SetTop(2) /* create a 2nd argument if there isn't one */
 	if ls.Next(1) {
 		return 2
@@ -56,21 +56,21 @@ func __next(ls LuaState) int {
 	}
 }
 
-func __pairs(ls LuaState) int {
+func __pairs(ls BasicAPI) int {
 	ls.PushGoFunction(__next) /* will return generator, */
 	ls.PushValue(1)              /* state, */
 	ls.PushNil()
 	return 3
 }
 
-func __iPairs(ls LuaState) int {
+func __iPairs(ls BasicAPI) int {
 	ls.PushGoFunction(___iPairsAux) /* iteration function */
 	ls.PushValue(1)                    /* state */
 	ls.PushInteger(0)                  /* initial value */
 	return 3
 }
 
-func ___iPairsAux(ls LuaState) int {
+func ___iPairsAux(ls BasicAPI) int {
 	i := ls.ToInteger(2) + 1
 	ls.PushInteger(i)
 	if ls.GetI(1, i) == LUA_TNIL {
@@ -80,11 +80,11 @@ func ___iPairsAux(ls LuaState) int {
 	}
 }
 
-func __error(ls LuaState) int {
+func __error(ls BasicAPI) int {
 	return ls.Error()
 }
 
-func __pCall(ls LuaState) int {
+func __pCall(ls BasicAPI) int {
 	nArgs := ls.GetTop() - 1
 	status := ls.PCall(nArgs, -1, 0)
 	ls.PushBoolean(status == LUA_OK)

@@ -1,6 +1,9 @@
 package state
 
-import . "LuaGo/api"
+import (
+	. "LuaGo/api"
+	"fmt"
+)
 
 //lua值由外部推入栈顶
 func (self *luaState) PushNil()                    { self.stack.push(nil) }
@@ -22,4 +25,9 @@ func (self *luaState) PushGoClosure(f GoFunction, n int) {
 		closure.upvals[i-1] = &upvalue{&val}
 	}
 	self.stack.push(closure)
+}
+
+func (self *luaState) PushFString(fmtStr string, a ...interface{}) {
+	str := fmt.Sprintf(fmtStr, a...)
+	self.stack.push(str)
 }

@@ -4,7 +4,7 @@ type LuaType = int
 type ArithOp = int
 type CompareOp = int
 
-type GoFunction func(LuaState) int
+type GoFunction func(BasicAPI) int
 
 //伪索引 转换到 注册表索引
 func LuaUpvalueIndex(i int) int {
@@ -12,7 +12,7 @@ func LuaUpvalueIndex(i int) int {
 }
 
 //栈基础操作函数
-type LuaState interface {
+type BasicAPI interface {
 	//基础栈操作
 	GetTop() int
 	AbsIndex(idx int) int
@@ -90,4 +90,9 @@ type LuaState interface {
 	//try catch
 	Error() int
 	PCall(nArgs, nResults, msgh int) int
+}
+
+type LuaState interface {
+	BasicAPI
+	AuxLib
 }

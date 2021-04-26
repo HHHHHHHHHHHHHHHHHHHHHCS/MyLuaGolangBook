@@ -49,7 +49,7 @@ func (test *CH07Test) luaMain(data []byte, proto *binchunk.Prototype) {
 	}
 }
 
-func (test *CH07Test) printStack(ls LuaState) {
+func (test *CH07Test) printStack(ls BasicAPI) {
 	top := ls.GetTop()
 	for i := 1; i <= top; i++ {
 		t := ls.Type(i)

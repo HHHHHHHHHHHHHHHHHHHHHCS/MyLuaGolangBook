@@ -59,3 +59,77 @@ func (self *luaState) ArgCheck(cond bool, arg int, extraMsg string) {
 	}
 }
 
+func (self *luaState) CheckAny(arg int) {
+	if self.Type(arg) == LUA_TNONE {
+		self.ArgError(arg, "value expected")
+	}
+}
+
+func (self *luaState) CheckType(arg int, t LuaType) {
+	if self.Type(arg) != t {
+		self.tagError(arg, t)
+	}
+}
+
+func (self *luaState) CheckNumber(arg int) float64 {
+	f, ok := self.ToNumberX(arg)
+	if !ok {
+		self.tagError(arg, LUA_TNUMBER)
+	}
+	return f
+}
+
+//检查参数是否是选定的类型 如果是则返回值  否则返回默认值
+func (self *luaState) OptNumber(arg int, def float64) float64 {
+	if self.IsNoneOrNil(arg) {
+		return def
+	}
+	return self.CheckNumber(arg)
+}
+
+func (self *luaState) OpenLibs() {
+	libs := map[string]GoFunction{
+		"_G": stdlib.OpenBaseLib,
+		//TODO:
+	}
+
+	for name, fun := range libs {
+		self.RequireF(name, fun, true)
+		self.pop(1)
+	}
+}
+
+func (self *luaState) RequireF(modname string, openf GoFunction, glb bool) {
+	self.GetSubTable(LUA_REGISTRYINDEX, "_LOADED")
+	//loaded modname
+	self.GetField(-1, modname)
+
+	//package not already loaded?
+	if !self.ToBoolean(-1) {
+		self.Pop(1) //remove field
+		self.PushGoFunction(openf)
+		self.PushString(modname)   //arg to open func
+		self.Call(1, 1)            //call openf to open module
+		self.PushValue(-1)         //make copy of module(call result)
+		self.SetField(-3, modname) //_LOADED[modname] = module
+	}
+
+	self.Remove(-2) //remove _LOADED table
+	if glb {
+		self.PushValue(-1)      //copy of module
+		self.SetGlobal(modname) //_G[modname] = module
+	}
+}
+
+func (self *luaState) GetSubTable(idx int, fname string) bool {
+	if self.GetField(idx, fname) == LUA_TTABLE {
+		return true //table already there
+	}
+
+	self.Pop(1) //remove previous result
+	idx = self.stack.absIndex(idx)
+	self.NewTable()
+	self.PushValue(-1)        //copy to be left at top
+	self.SetField(idx, fname) //assign new table to field
+	return false              //false ,because did not find table there
+}

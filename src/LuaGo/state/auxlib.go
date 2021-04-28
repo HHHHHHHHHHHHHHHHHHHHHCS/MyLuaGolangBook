@@ -95,7 +95,7 @@ func (self *luaState) OpenLibs() {
 
 	for name, fun := range libs {
 		self.RequireF(name, fun, true)
-		self.pop(1)
+		self.Pop(1)
 	}
 }
 
@@ -133,3 +133,5 @@ func (self *luaState) GetSubTable(idx int, fname string) bool {
 	self.SetField(idx, fname) //assign new table to field
 	return false              //false ,because did not find table there
 }
+
+

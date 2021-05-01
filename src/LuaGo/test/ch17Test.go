@@ -1,7 +1,7 @@
 package test
 
 import (
-	"LuaGo/api"
+	. "LuaGo/api"
 	"LuaGo/state"
 	"fmt"
 	"io/ioutil"
@@ -31,7 +31,7 @@ func (test *CH17Test) DoTest() {
 }
 
 
-func (test *CH17Test) __print(ls api.BasicAPI) int {
+func (test *CH17Test) __print(ls LuaState) int {
 	nArgs := ls.GetTop()
 	for i := 1; i <= nArgs; i++ {
 		if ls.IsBoolean(i) {
@@ -49,19 +49,19 @@ func (test *CH17Test) __print(ls api.BasicAPI) int {
 	return 0
 }
 
-func (test *CH17Test) __getMetatable(ls api.BasicAPI) int {
+func (test *CH17Test) __getMetatable(ls LuaState) int {
 	if !ls.GetMetatable(1) {
 		ls.PushNil()
 	}
 	return 1
 }
 
-func (test *CH17Test) __setMetatable(ls api.BasicAPI) int {
+func (test *CH17Test) __setMetatable(ls LuaState) int {
 	ls.SetMetatable(1)
 	return 1
 }
 
-func (test *CH17Test) __next(ls api.BasicAPI) int {
+func (test *CH17Test) __next(ls LuaState) int {
 	ls.SetTop(2) /* create a 2nd argument if there isn't one */
 	if ls.Next(1) {
 		return 2
@@ -71,38 +71,38 @@ func (test *CH17Test) __next(ls api.BasicAPI) int {
 	}
 }
 
-func (test *CH17Test) __pairs(ls api.BasicAPI) int {
+func (test *CH17Test) __pairs(ls LuaState) int {
 	ls.PushGoFunction(test.__next) /* will return generator, */
 	ls.PushValue(1)           /* state, */
 	ls.PushNil()
 	return 3
 }
 
-func (test *CH17Test) __iPairs(ls api.BasicAPI) int {
+func (test *CH17Test) __iPairs(ls LuaState) int {
 	ls.PushGoFunction(test.___iPairsAux) /* iteration function */
 	ls.PushValue(1)                 /* state */
 	ls.PushInteger(0)               /* initial value */
 	return 3
 }
 
-func (test *CH17Test) ___iPairsAux(ls  api.BasicAPI) int {
+func (test *CH17Test) ___iPairsAux(ls  LuaState) int {
 	i := ls.ToInteger(2) + 1
 	ls.PushInteger(i)
-	if ls.GetI(1, i) ==  api.LUA_TNIL {
+	if ls.GetI(1, i) ==  LUA_TNIL {
 		return 1
 	} else {
 		return 2
 	}
 }
 
-func (test *CH17Test) __error(ls api.BasicAPI) int {
+func (test *CH17Test) __error(ls LuaState) int {
 	return ls.Error()
 }
 
-func (test *CH17Test) __pCall(ls api.BasicAPI) int {
+func (test *CH17Test) __pCall(ls LuaState) int {
 	nArgs := ls.GetTop() - 1
 	status := ls.PCall(nArgs, -1, 0)
-	ls.PushBoolean(status == api.LUA_OK)
+	ls.PushBoolean(status == LUA_OK)
 	ls.Insert(1)
 	return ls.GetTop()
 }

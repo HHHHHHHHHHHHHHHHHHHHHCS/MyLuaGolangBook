@@ -22,7 +22,7 @@ func (test *CH10Test) DoTest() {
 	ls.Call(0, 0)
 }
 
-func (test CH10Test) print(ls BasicAPI) int {
+func (test CH10Test) print(ls LuaState) int {
 	nArgs := ls.GetTop()
 	for i := 1; i <= nArgs; i++ {
 		if ls.IsBoolean(i) {

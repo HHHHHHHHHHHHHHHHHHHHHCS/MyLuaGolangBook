@@ -2,6 +2,18 @@ package vm
 
 import . "LuaGo/api"
 
+func self(i Instruction, vm LuaVM) {
+	//对象和方法拷贝到相邻的两个目标寄存器中
+	//对象在b  方法在常量表在c  目标索引在a
+	a, b, c := i.ABC()
+	a += 1
+	b += 1
+
+	vm.Copy(b, a+1)
+	vm.GetRK(c)
+	vm.GetTable(b)
+	vm.Replace(a)
+}
 func closure(i Instruction, vm LuaVM) {
 	a, bx := i.ABx()
 	a += 1
@@ -10,6 +22,37 @@ func closure(i Instruction, vm LuaVM) {
 	vm.Replace(a)
 }
 
+
+func vararg(i Instruction, vm LuaVM) {
+	a, b, _ := i.ABC()
+	a += 1
+
+	if b != 1 {
+		vm.LoadVararg(b - 1)
+		_popResults(a, b, vm)
+	}
+}
+
+func tForCall(i Instruction, vm LuaVM) {
+	a, _, c := i.ABC()
+	a += 1
+
+	_pushFuncAndArgs(a, 3, vm)
+	vm.Call(2, c)
+	_popResults(a+3, c+1, vm)
+}
+
+//尾递归 调用函数
+func tailCall(i Instruction, vm LuaVM) {
+	a, b, _ := i.ABC()
+	a += 1
+	c := 0
+
+	// todo: optimize tail call!
+	nArgs := _pushFuncAndArgs(a, b, vm)
+	vm.Call(nArgs, c-1)
+	_popResults(a, c, vm)
+}
 func call(i Instruction, vm LuaVM) {
 	a, b, c := i.ABC()
 	a += 1
@@ -73,47 +116,8 @@ func _return(i Instruction, vm LuaVM) {
 	}
 }
 
-func vararg(i Instruction, vm LuaVM) {
-	a, b, _ := i.ABC()
-	a += 1
 
-	if b != 1 {
-		vm.LoadVararg(b - 1)
-		_popResults(a, b, vm)
-	}
-}
 
-//尾递归 调用函数
-func tailCall(i Instruction, vm LuaVM) {
-	a, b, _ := i.ABC()
-	a += 1
-	c := 0
 
-	// todo: optimize tail call!
-	nArgs := _pushFuncAndArgs(a, b, vm)
-	vm.Call(nArgs, c-1)
-	_popResults(a, c, vm)
-}
 
-func self(i Instruction, vm LuaVM) {
-	//对象和方法拷贝到相邻的两个目标寄存器中
-	//对象在b  方法在常量表在c  目标索引在a
-	a, b, c := i.ABC()
-	a += 1
-	b += 1
-
-	vm.Copy(b, a+1)
-	vm.GetRK(c)
-	vm.GetTable(b)
-	vm.Replace(a)
-}
-
-func tForCall(i Instruction, vm LuaVM) {
-	a, _, c := i.ABC()
-	a += 1
-
-	_pushFuncAndArgs(a, 3, vm)
-	vm.Call(2, c)
-	_popResults(a+3, c+1, vm)
-}
 

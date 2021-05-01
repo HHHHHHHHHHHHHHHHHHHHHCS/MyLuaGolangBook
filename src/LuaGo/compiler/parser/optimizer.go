@@ -7,56 +7,6 @@ import (
 	"math"
 )
 
-//编译阶段函数优化用
-
-func isTrue(exp Exp) bool {
-	switch exp.(type) {
-	case *TrueExp, *IntegerExp, *FloatExp, *StringExp:
-		return true
-	default:
-		return false
-	}
-}
-
-func isFalse(exp Exp) bool {
-	switch exp.(type) {
-	case *FalseExp, *NilExp:
-		return true
-	default:
-		return false
-	}
-}
-
-//TODO:
-func isVarargOrFuncCall(exp Exp) bool {
-	switch exp.(type) {
-	case *VarargExp, *FuncCallExp:
-		return true
-	}
-	return false
-}
-
-func castToInt(exp Exp) (int64, bool) {
-	switch x := exp.(type) {
-	case *IntegerExp:
-		return x.Val, true
-	case *FloatExp:
-		return number.FloatToInteger(x.Val)
-	default:
-		return 0, false
-	}
-}
-
-func castToFloat(exp Exp) (float64, bool) {
-	switch x := exp.(type) {
-	case *IntegerExp:
-		return float64(x.Val), true
-	case *FloatExp:
-		return x.Val, true
-	default:
-		return 0, false
-	}
-}
 
 func optimizeLogicalOr(exp *BinopExp) Exp {
 	if isTrue(exp.Exp1) {
@@ -74,46 +24,6 @@ func optimizeLogicalAnd(exp *BinopExp) Exp {
 	}
 	if isTrue(exp.Exp1) && !isVarargOrFuncCall(exp.Exp2) {
 		return exp.Exp2 // true and x => x
-	}
-	return exp
-}
-
-//-x
-func optimizeUnm(exp *UnopExp) Exp {
-	switch x := exp.Exp.(type) {
-	case *IntegerExp:
-		x.Val = -x.Val
-		return x
-	case *FloatExp:
-		x.Val = -x.Val
-		return x
-	default:
-		return exp
-	}
-}
-
-//not bool
-func optimizeNot(exp *UnopExp) Exp {
-	switch exp.Exp.(type) {
-	case *NilExp, *FalseExp: // false
-		return &TrueExp{Line: exp.Line}
-	case *TrueExp, *IntegerExp, *FloatExp, *StringExp: // true
-		return &FalseExp{Line: exp.Line}
-	default:
-		return exp
-	}
-}
-
-//~ 异或
-func optimizeBNot(exp *UnopExp) Exp {
-	switch x := exp.Exp.(type) { // number?
-	case *IntegerExp:
-		x.Val = ^x.Val
-		return x
-	case *FloatExp:
-		if i, ok := number.FloatToInteger(x.Val); ok {
-			return &IntegerExp{Line: x.Line, Val: ^i}
-		}
 	}
 	return exp
 }
@@ -213,3 +123,99 @@ func optimizeUnaryOp(exp *UnopExp) Exp {
 		return exp
 	}
 }
+
+
+//-x
+func optimizeUnm(exp *UnopExp) Exp {
+	switch x := exp.Exp.(type) {
+	case *IntegerExp:
+		x.Val = -x.Val
+		return x
+	case *FloatExp:
+		if x.Val != 0{
+		x.Val = -x.Val
+		return x
+		}
+	}
+	return exp
+}
+
+//not bool
+func optimizeNot(exp *UnopExp) Exp {
+	switch exp.Exp.(type) {
+	case *NilExp, *FalseExp: // false
+		return &TrueExp{Line: exp.Line}
+	case *TrueExp, *IntegerExp, *FloatExp, *StringExp: // true
+		return &FalseExp{Line: exp.Line}
+	default:
+		return exp
+	}
+}
+
+//~ 异或
+func optimizeBNot(exp *UnopExp) Exp {
+	switch x := exp.Exp.(type) { // number?
+	case *IntegerExp:
+		x.Val = ^x.Val
+		return x
+	case *FloatExp:
+		if i, ok := number.FloatToInteger(x.Val); ok {
+			return &IntegerExp{Line: x.Line, Val: ^i}
+		}
+	}
+	return exp
+}
+
+
+//编译阶段函数优化用
+
+
+func isFalse(exp Exp) bool {
+	switch exp.(type) {
+	case *FalseExp, *NilExp:
+		return true
+	default:
+		return false
+	}
+}
+
+func isTrue(exp Exp) bool {
+	switch exp.(type) {
+	case *TrueExp, *IntegerExp, *FloatExp, *StringExp:
+		return true
+	default:
+		return false
+	}
+}
+
+//TODO:
+func isVarargOrFuncCall(exp Exp) bool {
+	switch exp.(type) {
+	case *VarargExp, *FuncCallExp:
+		return true
+	}
+	return false
+}
+
+func castToInt(exp Exp) (int64, bool) {
+	switch x := exp.(type) {
+	case *IntegerExp:
+		return x.Val, true
+	case *FloatExp:
+		return number.FloatToInteger(x.Val)
+	default:
+		return 0, false
+	}
+}
+
+func castToFloat(exp Exp) (float64, bool) {
+	switch x := exp.(type) {
+	case *IntegerExp:
+		return float64(x.Val), true
+	case *FloatExp:
+		return x.Val, true
+	default:
+		return 0, false
+	}
+}
+

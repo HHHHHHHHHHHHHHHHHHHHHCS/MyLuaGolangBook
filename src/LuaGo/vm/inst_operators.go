@@ -4,27 +4,6 @@ import . "LuaGo/api"
 
 //运算符相关的指令
 
-//二元运算
-func _binaryArith(i Instruction, vm LuaVM, op ArithOp) {
-	a, b, c := i.ABC()
-	a += 1
-
-	vm.GetRK(b)
-	vm.GetRK(c)
-	vm.Arith(op)
-	vm.Replace(a)
-}
-
-//一元自运算
-func _unaryArith(i Instruction, vm LuaVM, op ArithOp) {
-	a, b, _ := i.ABC()
-	a += 1
-	b += 1
-
-	vm.PushValue(b)
-	vm.Arith(op)
-	vm.Replace(a)
-}
 
 //+
 func add(i Instruction, vm LuaVM) {
@@ -96,6 +75,97 @@ func bnot(i Instruction, vm LuaVM) {
 	_unaryArith(i, vm, LUA_OPBNOT)
 }
 
+
+//二元运算
+func _binaryArith(i Instruction, vm LuaVM, op ArithOp) {
+	a, b, c := i.ABC()
+	a += 1
+
+	vm.GetRK(b)
+	vm.GetRK(c)
+	vm.Arith(op)
+	vm.Replace(a)
+}
+
+//一元自运算
+func _unaryArith(i Instruction, vm LuaVM, op ArithOp) {
+	a, b, _ := i.ABC()
+	a += 1
+	b += 1
+
+	vm.PushValue(b)
+	vm.Arith(op)
+	vm.Replace(a)
+}
+
+/*比较相关指令*/
+
+//==
+func eq(i Instruction, vm LuaVM) {
+	_compare(i, vm, LUA_OPEQ)
+}
+
+//<
+func lt(i Instruction, vm LuaVM) {
+	_compare(i, vm, LUA_OPLT)
+}
+
+//<=
+func le(i Instruction, vm LuaVM) {
+	_compare(i, vm, LUA_OPLE)
+}
+
+//比较 如果失败 则跳过下一条指令
+func _compare(i Instruction, vm LuaVM, op CompareOp) {
+	a, b, c := i.ABC()
+
+	vm.GetRK(b)
+	vm.GetRK(c)
+	//a!=0 true   result!=true -> false ->jump 1 pc
+	if vm.Compare(-2, -1, op) != (a != 0) {
+		vm.AddPC(1)
+	}
+	vm.Pop(2)
+}
+
+
+
+//读取栈索引b bool 取反 插入 栈索引a
+func not(i Instruction, vm LuaVM) {
+	a, b, _ := i.ABC()
+	a += 1
+	b += 1
+
+	vm.PushBoolean(!vm.ToBoolean(b))
+	vm.Replace(a)
+}
+
+//读取栈索引a  和 c 布尔比较
+//如果失败 则跳过下一条指令
+func test(i Instruction, vm LuaVM) {
+	a, _, c := i.ABC()
+	a += 1
+
+	if vm.ToBoolean(a) != (c != 0) {
+		vm.AddPC(1)
+	}
+}
+
+//索引b的bool 值 是否和c 一样
+//如果一样 则把 b 的值 赋值到栈索引a
+//否则跳过下一条指令
+func testSet(i Instruction, vm LuaVM) {
+	a, b, c := i.ABC()
+	a += 1
+	b += 1
+
+	if vm.ToBoolean(b) == (c != 0) {
+		vm.Copy(b, a)
+	} else {
+		vm.AddPC(1)
+	}
+}
+
 //得到某个栈的值的长度(如string) 在塞入某个位置
 func length(i Instruction, vm LuaVM) {
 	a, b, _ := i.ABC()
@@ -124,67 +194,4 @@ func concat(i Instruction, vm LuaVM) {
 	vm.Replace(a)
 }
 
-//比较 如果失败 则跳过下一条指令
-func _compare(i Instruction, vm LuaVM, op CompareOp) {
-	a, b, c := i.ABC()
-
-	vm.GetRK(b)
-	vm.GetRK(c)
-	//a!=0 true   result!=true -> false ->jump 1 pc
-	if vm.Compare(-2, -1, op) != (a != 0) {
-		vm.AddPC(1)
-	}
-	vm.Pop(2)
-}
-
-//==
-func eq(i Instruction, vm LuaVM) {
-	_compare(i, vm, LUA_OPEQ)
-}
-
-//<
-func lt(i Instruction, vm LuaVM) {
-	_compare(i, vm, LUA_OPLT)
-}
-
-//<=
-func le(i Instruction, vm LuaVM) {
-	_compare(i, vm, LUA_OPLE)
-}
-
-//读取栈索引b bool 取反 插入 栈索引a
-func not(i Instruction, vm LuaVM) {
-	a, b, _ := i.ABC()
-	a += 1
-	b += 1
-
-	vm.PushBoolean(!vm.ToBoolean(b))
-	vm.Replace(a)
-}
-
-//索引b的bool 值 是否和c 一样
-//如果一样 则把 b 的值 赋值到栈索引a
-//否则跳过下一条指令
-func testSet(i Instruction, vm LuaVM) {
-	a, b, c := i.ABC()
-	a += 1
-	b += 1
-
-	if vm.ToBoolean(b) == (c != 0) {
-		vm.Copy(b, a)
-	} else {
-		vm.AddPC(1)
-	}
-}
-
-//读取栈索引a  和 c 布尔比较
-//如果失败 则跳过下一条指令
-func test(i Instruction, vm LuaVM) {
-	a, _, c := i.ABC()
-	a += 1
-
-	if vm.ToBoolean(a) != (c != 0) {
-		vm.AddPC(1)
-	}
-}
 

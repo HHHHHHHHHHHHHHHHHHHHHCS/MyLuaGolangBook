@@ -45,10 +45,10 @@ func convertToBoolean(val luaValue) bool {
 //把lua值 尝试转换为float
 func convertToFloat(val luaValue) (float64, bool) {
 	switch x := val.(type) {
-	case float64:
-		return x, true
 	case int64:
 		return float64(x), true
+	case float64:
+		return x, true
 	case string:
 		return number.ParseFloat(x)
 	default:
@@ -82,15 +82,7 @@ func _stringToInteger(s string) (int64, bool) {
 	return 0, false
 }
 
-func setMetatable(val luaValue, mt *luaTable, ls *luaState) {
-	if t, ok := val.(*luaTable); ok {
-		t.metatable = mt
-		return
-	}
-	//如果是非表数据  用_MT+int(typof(val))  储存在注册表内
-	key := fmt.Sprint("_MT%d", typeOf(val))
-	ls.registry.put(key, mt)
-}
+
 
 func getMetatable(val luaValue, ls *luaState) *luaTable {
 	if t, ok := val.(*luaTable); ok {
@@ -101,6 +93,16 @@ func getMetatable(val luaValue, ls *luaState) *luaTable {
 		return mt.(*luaTable)
 	}
 	return nil
+}
+
+func setMetatable(val luaValue, mt *luaTable, ls *luaState) {
+	if t, ok := val.(*luaTable); ok {
+		t.metatable = mt
+		return
+	}
+	//如果是非表数据  用_MT+int(typof(val))  储存在注册表内
+	key := fmt.Sprintf("_MT%d", typeOf(val))
+	ls.registry.put(key, mt)
 }
 
 func getMetafield(val luaValue, fieldName string, ls *luaState) luaValue {

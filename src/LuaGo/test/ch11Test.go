@@ -24,7 +24,7 @@ func (test *CH11Test) DoTest() {
 	ls.Call(0, 0)
 }
 
-func (test CH11Test) print(ls BasicAPI) int {
+func (test CH11Test) print(ls LuaState) int {
 	nArgs := ls.GetTop()
 	for i := 1; i <= nArgs; i++ {
 		if ls.IsBoolean(i) {
@@ -42,14 +42,14 @@ func (test CH11Test) print(ls BasicAPI) int {
 	return 0
 }
 
-func (test CH11Test) getMetatable(ls BasicAPI) int {
+func (test CH11Test) getMetatable(ls LuaState) int {
 	if !ls.GetMetatable(1) {
 		ls.PushNil()
 	}
 	return 1
 }
 
-func (test CH11Test) setMetatable(ls BasicAPI) int {
+func (test CH11Test) setMetatable(ls LuaState) int {
 	ls.SetMetatable(1)
 	return 1
 }

@@ -1,5 +1,7 @@
 package state
 
+import "LuaGo/number"
+
 //暂时只考虑 字符串的长度
 func (self *luaState) Len(idx int) {
 	val := self.stack.get(idx)
@@ -59,10 +61,22 @@ func (self *luaState) Next(idx int) bool {
 		}
 		return false
 	}
-	panic("table expected")
+	panic("table expected!")
 }
 
 func (self *luaState) Error() int {
 	err := self.stack.pop()
 	panic(err)
+}
+
+func (self *luaState) StringToNumber(s string) bool {
+	if n, ok := number.ParseInteger(s); ok {
+		self.PushInteger(n)
+		return true
+	}
+	if n, ok := number.ParseFloat(s); ok {
+		self.PushNumber(n)
+		return true
+	}
+	return false
 }

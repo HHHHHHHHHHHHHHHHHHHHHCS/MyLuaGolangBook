@@ -24,7 +24,7 @@ func (test *CH13Test) DoTest() {
 	ls.Call(0, 0)
 }
 
-func (test CH13Test) print(ls BasicAPI) int {
+func (test CH13Test) print(ls LuaState) int {
 	nArgs := ls.GetTop()
 	for i := 1; i <= nArgs; i++ {
 		if ls.IsBoolean(i) {
@@ -42,12 +42,12 @@ func (test CH13Test) print(ls BasicAPI) int {
 	return 0
 }
 
-func (test CH13Test) error(ls BasicAPI) int {
+func (test CH13Test) error(ls LuaState) int {
 	//默认只接受一个参数 错误对象在栈顶
 	return ls.Error()
 }
 
-func (test CH13Test) pCall(ls BasicAPI) int {
+func (test CH13Test) pCall(ls LuaState) int {
 	nArgs := ls.GetTop() - 1 //第一个是栈堆  后面一位才是参数个数
 	status := ls.PCall(nArgs, -1, 0)
 	//因为是后面push进来的   所以这里要翻转下

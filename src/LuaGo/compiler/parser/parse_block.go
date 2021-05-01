@@ -11,6 +11,18 @@ func parseBlock(lexer *Lexer) *Block {
 	}
 }
 
+
+func parseStats(lexer *Lexer) []Stat {
+	stats := make([]Stat, 0, 8)
+	for !_isReturnOrBlockEnd(lexer.LookAhead()) {
+		stat := parseStat(lexer)
+		if _, ok := stat.(*EmptyStat); !ok {
+			stats = append(stats, stat)
+		}
+	}
+	return stats
+}
+
 func _isReturnOrBlockEnd(tokenKind int) bool {
 	switch tokenKind {
 	case TOKEN_KW_RETURN, TOKEN_EOF, TOKEN_KW_END,
@@ -28,7 +40,7 @@ func parseRetExps(lexer *Lexer) []Exp {
 	lexer.NextToken()
 	switch lexer.LookAhead() {
 	case TOKEN_EOF, TOKEN_KW_END,
-		TOKEN_KW_ELSE, TOKEN_KW_IF, TOKEN_KW_UNTIL:
+		TOKEN_KW_ELSE, TOKEN_KW_ELSEIF, TOKEN_KW_UNTIL:
 		return []Exp{}
 	case TOKEN_SEP_SEMI:
 		lexer.NextToken()
@@ -40,15 +52,4 @@ func parseRetExps(lexer *Lexer) []Exp {
 		}
 		return exps
 	}
-}
-
-func parseStats(lexer *Lexer) []Stat {
-	stats := make([]Stat, 0, 8)
-	for !_isReturnOrBlockEnd(lexer.LookAhead()) {
-		stat := parseStat(lexer)
-		if _, ok := stat.(*EmptyStat); !ok {
-			stats = append(stats, stat)
-		}
-	}
-	return stats
 }

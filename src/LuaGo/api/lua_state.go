@@ -4,11 +4,16 @@ type LuaType = int
 type ArithOp = int
 type CompareOp = int
 
-type GoFunction func(BasicAPI) int
+type GoFunction func(LuaState) int
 
 //伪索引 转换到 注册表索引
 func LuaUpvalueIndex(i int) int {
 	return LUA_REGISTRYINDEX - i
+}
+
+type LuaState interface {
+	BasicAPI
+	AuxLib
 }
 
 //栈基础操作函数
@@ -47,12 +52,15 @@ type BasicAPI interface {
 	ToString(idx int) string
 	ToStringX(idx int) (string, bool)
 	ToGoFunction(idx int) GoFunction
+	ToPointer(idx int) interface{}
+	RawLen(idx int) uint
 	//压入栈 go->stacks
 	PushNil()
 	PushBoolean(b bool)
 	PushInteger(n int64)
 	PushNumber(n float64)
 	PushString(s string)
+	PushFString(fmt string, a ...interface{})
 	PushGoFunction(f GoFunction)
 	PushGoClosure(f GoFunction, n int)
 	PushGlobalTable()
@@ -82,17 +90,13 @@ type BasicAPI interface {
 	//Function
 	Load(chunk []byte, chunkName, mode string) int
 	Call(nArgs, nResults int)
+	PCall(nArgs, nResults, msgh int) int
 	//其他方法
 	Len(idx int)
-	RawLen(idx int) uint
 	Concat(n int)
 	Next(idx int) bool
 	//try catch
 	Error() int
-	PCall(nArgs, nResults, msgh int) int
+	StringToNumber(s string) bool
 }
 
-type LuaState interface {
-	BasicAPI
-	AuxLib
-}

@@ -103,6 +103,10 @@ type LocVar struct {
 	EndPC   uint32
 }
 
+func IsBinaryChunk(data []byte) bool {
+	return len(data) > 4 && string(data[:4]) == LUA_SIGNATURE
+}
+
 //用于解析二进制chunk
 func Undump(data []byte) *Prototype {
 	reader := &reader{data}
@@ -111,6 +115,4 @@ func Undump(data []byte) *Prototype {
 	return reader.readProto("") //读取函数原型
 }
 
-func IsBinaryChunk(data []byte) bool {
-	return len(data) > 4 && string(data[:4]) == LUA_SIGNATURE
-}
+

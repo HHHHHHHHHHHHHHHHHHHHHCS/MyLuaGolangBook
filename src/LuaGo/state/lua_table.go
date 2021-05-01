@@ -24,6 +24,17 @@ func newLuaTable(nArr, nRec int) *luaTable {
 	return t
 }
 
+
+func (self *luaTable) hasMetafield(fieldName string) bool {
+	return self.metatable != nil &&
+		self.metatable.get(fieldName) != nil
+}
+
+func (self *luaTable) len() int {
+	return len(self.arr)
+}
+
+
 //从map get value    如果key可以转换为int 则尝试
 //go起始位置是0   lua起始位置是1
 func (self *luaTable) get(key luaValue) luaValue {
@@ -56,6 +67,7 @@ func (self *luaTable) put(key, val luaValue) {
 		panic("table index is NaN!")
 	}
 
+	self.changed = true
 	//如果可以转换为int  即尝试用index序号
 	key = _floatToInteger(key)
 	if idx, ok := key.(int64); ok && idx >= 1 {
@@ -115,13 +127,18 @@ func (self *luaTable) _expandArray() {
 	}
 }
 
-func (self *luaTable) len() int {
-	return len(self.arr)
-}
+func (self *luaTable) nextKey(key luaValue) luaValue {
+	if self.keys == nil || (key == nil && self.changed) {
+		self.initKeys()
+		self.changed = false
+	}
 
-func (self *luaTable) hasMetafield(fieldName string) bool {
-	return self.metatable != nil &&
-		self.metatable.get(fieldName) != nil
+	nextKey := self.keys[key]
+	if nextKey == nil && key != nil && key != self.lastKey {
+		panic("invalid key to 'next'")
+	}
+
+	return nextKey
 }
 
 //搜集key  因为golang的map的foreach顺序不确定
@@ -143,16 +160,4 @@ func (self *luaTable) initKeys() {
 	self.lastKey = key
 }
 
-func (self *luaTable) nextKey(key luaValue) luaValue {
-	if self.keys == nil || key == nil {
-		self.initKeys()
-		self.changed = false
-	}
 
-	nextKey := self.keys[key]
-	if nextKey == nil && key != nil && key != self.lastKey {
-		panic("invalid key to 'next'")
-	}
-
-	return nextKey
-}

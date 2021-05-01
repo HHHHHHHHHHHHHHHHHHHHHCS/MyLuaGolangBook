@@ -86,24 +86,24 @@ func _lt(a, b luaValue, ls *luaState) bool {
 		if y, ok := b.(string); ok {
 			return x < y
 		}
+		break
+
 	case int64:
-		{
-			switch y := b.(type) {
-			case int64:
-				return x < y
-			case float64:
-				return float64(x) < y
-			}
+		switch y := b.(type) {
+		case int64:
+			return x < y
+		case float64:
+			return float64(x) < y
 		}
+		break
 	case float64:
-		{
-			switch y := b.(type) {
-			case float64:
-				return x < y
-			case int64:
-				return x < float64(y)
-			}
+		switch y := b.(type) {
+		case float64:
+			return x < y
+		case int64:
+			return x < float64(y)
 		}
+		break
 	}
 
 	if result, ok := callMetamethod(a, b, "__lt", ls); ok {
@@ -122,23 +122,21 @@ func _le(a, b luaValue, ls *luaState) bool {
 			return x <= y
 		}
 	case int64:
-		{
-			switch y := b.(type) {
-			case int64:
-				return x <= y
-			case float64:
-				return float64(x) <= y
-			}
+		switch y := b.(type) {
+		case int64:
+			return x <= y
+		case float64:
+			return float64(x) <= y
 		}
+		break
 	case float64:
-		{
-			switch y := b.(type) {
-			case float64:
-				return x <= y
-			case int64:
-				return x <= float64(y)
-			}
+		switch y := b.(type) {
+		case float64:
+			return x <= y
+		case int64:
+			return x <= float64(y)
 		}
+		break
 	}
 	//先用<=去查找  如果没有这个方法
 	//则用>去尝试查找

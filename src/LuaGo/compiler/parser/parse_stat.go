@@ -5,6 +5,8 @@ import (
 	. "LuaGo/compiler/lexer"
 )
 
+var _statEmpty = &EmptyStat{}
+
 func parseStat(lexer *Lexer) Stat {
 	switch lexer.LookAhead() {
 	case TOKEN_SEP_SEMI:
@@ -36,7 +38,7 @@ func parseStat(lexer *Lexer) Stat {
 
 func parseEmptyStat(lexer *Lexer) *EmptyStat {
 	lexer.NextTokenOfKind(TOKEN_SEP_SEMI) //';'
-	return &EmptyStat{}
+	return _statEmpty
 }
 
 func parseBreakStat(lexer *Lexer) *BreakStat {
@@ -142,16 +144,6 @@ func _finishForNumStat(lexer *Lexer, lineOfFor int, varName string) *ForNumStat 
 		VarName: varName, InitExp: initExp, LimitExp: limitExp, StepExp: stepExp, Block: block}
 }
 
-func _finishNameList(lexer *Lexer, name0 string) []string {
-	names := []string{name0}
-	for lexer.LookAhead() == TOKEN_SEP_COMMA {
-		lexer.NextToken()                 //`,`
-		_, name := lexer.NextIdentifier() //name
-		names = append(names, name)
-	}
-	return names
-}
-
 func _finishForInStat(lexer *Lexer, name0 string) *ForInStat {
 	nameList := _finishNameList(lexer, name0) //for nameList
 	lexer.NextTokenOfKind(TOKEN_KW_IN)
@@ -161,6 +153,25 @@ func _finishForInStat(lexer *Lexer, name0 string) *ForInStat {
 	lexer.NextTokenOfKind(TOKEN_KW_END)
 	return &ForInStat{LineOfDo: lineOfDo, NameList: nameList, ExpList: expList, Block: block}
 }
+func _finishNameList(lexer *Lexer, name0 string) []string {
+	names := []string{name0}
+	for lexer.LookAhead() == TOKEN_SEP_COMMA {
+		lexer.NextToken()                 //`,`
+		_, name := lexer.NextIdentifier() //name
+		names = append(names, name)
+	}
+	return names
+}
+func parseLocalAssignOrFuncDefStat(lexer *Lexer) Stat {
+	lexer.NextTokenOfKind(TOKEN_KW_LOCAL)
+	if lexer.LookAhead() == TOKEN_KW_FUNCTION { //function
+		return _finishLocalFuncDefStat(lexer)
+	} else {
+		return _finishLocalVarDeclStat(lexer)
+	}
+}
+
+
 
 func _finishLocalFuncDefStat(lexer *Lexer) *LocalFuncDefStat {
 	lexer.NextTokenOfKind(TOKEN_KW_FUNCTION)
@@ -181,22 +192,22 @@ func _finishLocalVarDeclStat(lexer *Lexer) *LocalVarDeclStat {
 	return &LocalVarDeclStat{LastLine: lastLine, NameList: nameList, ExpList: expList}
 }
 
-func parseLocalAssignOrFuncDefStat(lexer *Lexer) Stat {
-	lexer.NextTokenOfKind(TOKEN_KW_LOCAL)
-	if lexer.LookAhead() == TOKEN_KW_FUNCTION { //function
-		return _finishLocalFuncDefStat(lexer)
+func parseAssignOrFuncCallStat(lexer *Lexer) Stat {
+	prefixExp := parsePrefixExp(lexer)
+	if fc, ok := prefixExp.(*FuncCallExp); ok {
+		return fc
 	} else {
-		return _finishLocalVarDeclStat(lexer)
+		return parseAssignStat(lexer, prefixExp)
 	}
 }
 
-func _checkVar(lexer *Lexer, exp Exp) Exp {
-	switch exp.(type) {
-	case *NameExp, *TableAccessExp:
-		return exp
-	}
-	lexer.NextTokenOfKind(-1) // trigger error
-	panic("unreachable!")
+func parseAssignStat(lexer *Lexer, var0 Exp) *AssignStat {
+	varList := _finishVarList(lexer, var0) //varList
+	lexer.NextTokenOfKind(TOKEN_OP_ASSIGN) //`=`
+	expList := parseExpList(lexer)         //expList
+	lastLine := lexer.Line()
+	return &AssignStat{LastLine: lastLine, VarList: varList, ExpList: expList}
+
 }
 
 func _finishVarList(lexer *Lexer, var0 Exp) []Exp {
@@ -209,23 +220,34 @@ func _finishVarList(lexer *Lexer, var0 Exp) []Exp {
 	return vars
 }
 
-func parseAssignStat(lexer *Lexer, var0 Exp) *AssignStat {
-	varList := _finishVarList(lexer, var0) //varList
-	lexer.NextTokenOfKind(TOKEN_OP_ASSIGN) //`=`
-	expList := parseExpList(lexer)         //expList
-	lastLine := lexer.Line()
-	return &AssignStat{LastLine: lastLine, VarList: varList, ExpList: expList}
-
+func _checkVar(lexer *Lexer, exp Exp) Exp {
+	switch exp.(type) {
+	case *NameExp, *TableAccessExp:
+		return exp
+	}
+	lexer.NextTokenOfKind(-1) // trigger error
+	panic("unreachable!")
 }
 
-func parseAssignOrFuncCallStat(lexer *Lexer) Stat {
-	prefixExp := parsePrefixExp(lexer)
-	if fc, ok := prefixExp.(*FuncCallExp); ok {
-		return fc
-	} else {
-		return parseAssignStat(lexer, prefixExp)
+func parseFuncDefStat(lexer *Lexer) *AssignStat {
+	lexer.NextTokenOfKind(TOKEN_KW_FUNCTION) //function
+	fnExp, hasColon := _parseFuncName(lexer) //func name
+	fdExp := parseFuncDefExp(lexer)          //func body
+
+	//v:name(args) => v.name(self,args)
+	if hasColon {
+		fdExp.ParList = append(fdExp.ParList, "")
+		copy(fdExp.ParList[1:], fdExp.ParList)
+		fdExp.ParList[0] = "self"
+	}
+
+	return &AssignStat{
+		LastLine: fdExp.Line,
+		VarList:  []Exp{fnExp},
+		ExpList:  []Exp{fdExp},
 	}
 }
+
 
 func _parseFuncName(lexer *Lexer) (exp Exp, hasColon bool) {
 	line, name := lexer.NextIdentifier()
@@ -248,21 +270,3 @@ func _parseFuncName(lexer *Lexer) (exp Exp, hasColon bool) {
 	return
 }
 
-func parseFuncDefStat(lexer *Lexer) *AssignStat {
-	lexer.NextTokenOfKind(TOKEN_KW_FUNCTION) //function
-	fnExp, hasColon := _parseFuncName(lexer) //func name
-	fdExp := parseFuncDefExp(lexer)          //func body
-
-	//v:name(args) => v.name(self,args)
-	if hasColon {
-		fdExp.ParList = append(fdExp.ParList, "")
-		copy(fdExp.ParList[1:], fdExp.ParList)
-		fdExp.ParList[0] = "self"
-	}
-
-	return &AssignStat{
-		LastLine: fdExp.Line,
-		VarList:  []Exp{fnExp},
-		ExpList:  []Exp{fdExp},
-	}
-}

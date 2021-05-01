@@ -55,7 +55,7 @@ func (self *luaState) LoadProto(idx int) {
 	stack := self.stack
 	subProto := stack.closure.proto.Protos[idx]
 	closure := newLuaClosure(subProto)
-	self.stack.push(closure)
+	stack.push(closure)
 	for i, uvInfo := range subProto.Upvalues {
 		uvIdx := int(uvInfo.Idx)
 		//Instack == 1  如果是局部变量

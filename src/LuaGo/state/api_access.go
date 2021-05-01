@@ -104,22 +104,19 @@ func (self *luaState) IsInteger(idx int) bool {
 	return ok
 }
 
+//检测是否是go闭包 拿到变量 是否是闭包 是否不为nil
+func (self *luaState) IsGoFunction(idx int) bool {
+	val := self.stack.get(idx)
+	if c, ok := val.(*closure); ok {
+		return c.goFunc != nil
+	}
+	return false
+}
+
 //取出一个指 如果不是布尔值 则进行转换
 func (self *luaState) ToBoolean(idx int) bool {
 	val := self.stack.get(idx)
 	return convertToBoolean(val)
-}
-
-//进行普通的数字转换 如果不是数字 则返回0
-func (self *luaState) ToNumber(idx int) float64 {
-	n, _ := self.ToNumberX(idx)
-	return n
-}
-
-//进行带转换结果的数字转换 如果不是数字 则返回 0 和 结果
-func (self *luaState) ToNumberX(idx int) (float64, bool) {
-	val := self.stack.get(idx)
-	return convertToFloat(val)
 }
 
 //转换为整数 失败为 0
@@ -132,6 +129,18 @@ func (self *luaState) ToInteger(idx int) int64 {
 func (self *luaState) ToIntegerX(idx int) (int64, bool) {
 	val := self.stack.get(idx)
 	return convertToInteger(val)
+}
+
+//进行普通的数字转换 如果不是数字 则返回0
+func (self *luaState) ToNumber(idx int) float64 {
+	n, _ := self.ToNumberX(idx)
+	return n
+}
+
+//进行带转换结果的数字转换 如果不是数字 则返回 0 和 结果
+func (self *luaState) ToNumberX(idx int) (float64, bool) {
+	val := self.stack.get(idx)
+	return convertToFloat(val)
 }
 
 //转换为字符串 数字也可以转换为字符串 失败为空字符串
@@ -155,15 +164,6 @@ func (self *luaState) ToStringX(idx int) (string, bool) {
 	}
 }
 
-//检测是否是go闭包 拿到变量 是否是闭包 是否不为nil
-func (self *luaState) IsGoFunction(idx int) bool {
-	val := self.stack.get(idx)
-	if c, ok := val.(*closure); ok {
-		return c.goFunc != nil
-	}
-	return false
-}
-
 //从栈中返回goFunc
 func (self *luaState) ToGoFunction(idx int) GoFunction {
 	val := self.stack.get(idx)
@@ -171,4 +171,8 @@ func (self *luaState) ToGoFunction(idx int) GoFunction {
 		return c.goFunc
 	}
 	return nil
+}
+
+func (self *luaState) ToPointer(idx int) interface{} {
+	return self.stack.get(idx)
 }

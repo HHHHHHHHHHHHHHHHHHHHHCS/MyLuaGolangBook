@@ -6,19 +6,14 @@ import "math"
 //go整除只适用于整数 , 并且直接截断 , 并非向下取整(负数)
 //go取模不能直接映射的
 
-//向下取整
-func IFloorDiv(a, b int64) int64 {
-	if a > 0 && b > 0 || a < 0 && b < 0 || a%b == 0 {
-		return a / b
-	} else {
-		return a/b - 1
-	}
+
+//浮点数转换成整数  去除小数点 且没有超出范围 则表示成功
+func FloatToInteger(f float64) (int64, bool) {
+	i := int64(f)
+	return i, float64(i) == f
 }
 
-//向下取整
-func FFloorDiv(a, b float64) float64 {
-	return math.Floor(a / b)
-}
+
 
 //取模 整除模拟
 func IMod(a, b int64) int64 {
@@ -35,6 +30,20 @@ func FMod(a, b float64) float64 {
 		return b
 	}
 	return a - math.Floor(a/b)*b
+}
+
+//向下取整
+func IFloorDiv(a, b int64) int64 {
+	if a > 0 && b > 0 || a < 0 && b < 0 || a%b == 0 {
+		return a / b
+	} else {
+		return a/b - 1
+	}
+}
+
+//向下取整
+func FFloorDiv(a, b float64) float64 {
+	return math.Floor(a / b)
 }
 
 //左位移  右边操作数只能是无符号整数
@@ -57,8 +66,4 @@ func ShiftRight(a, n int64) int64 {
 	}
 }
 
-//浮点数转换成整数  去除小数点 且没有超出范围 则表示成功
-func FloatToInteger(f float64) (int64, bool) {
-	i := int64(f)
-	return i, float64(i) == f
-}
+

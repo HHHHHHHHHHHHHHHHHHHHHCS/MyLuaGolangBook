@@ -234,7 +234,7 @@ func parseNumberExp(lexer *Lexer) Exp {
 	} else if f, ok := number.ParseFloat(token); ok {
 		return &FloatExp{Line: line, Val: f}
 	} else {
-		panic("not a number :" + token)
+		panic("not a number: " + token)
 	}
 }
 
@@ -274,6 +274,35 @@ func _parseParList(lexer *Lexer) (names []string, isVararg bool) {
 	return
 }
 
+
+func parseTableConstructorExp(lexer *Lexer) *TableConstructorExp {
+	line := lexer.Line()
+	lexer.NextTokenOfKind(TOKEN_SEP_LCURLY)    //{
+	keyExps, valExps := _parseFieldList(lexer) //{fieldList}
+	lexer.NextTokenOfKind(TOKEN_SEP_RCURLY)    //}
+	lastLine := lexer.Line()
+	return &TableConstructorExp{Line: line, LastLine: lastLine, KeyExps: keyExps, ValExps: valExps}
+}
+
+func _parseFieldList(lexer *Lexer) (ks, vs []Exp) {
+	if lexer.LookAhead() != TOKEN_SEP_RCURLY { //}
+		k, v := _parseField(lexer)
+		ks = append(ks, k)
+		vs = append(vs, v)
+		for _isFieldSep(lexer.LookAhead()) {
+			lexer.NextToken()
+			if lexer.LookAhead() != TOKEN_SEP_RCURLY { //}
+				k, v := _parseField(lexer)
+				ks = append(ks, k)
+				vs = append(vs, v)
+			} else {
+				break
+			}
+		}
+	}
+	return
+}
+
 func _isFieldSep(tokenKind int) bool {
 	// , or ;
 	return tokenKind == TOKEN_SEP_COMMA || tokenKind == TOKEN_SEP_SEMI
@@ -290,39 +319,16 @@ func _parseField(lexer *Lexer) (k, v Exp) {
 	}
 	exp := parseExp(lexer)
 	if nameExp, ok := exp.(*NameExp); ok {
-		// name = exp => [LiteralString] = exp
-		lexer.NextToken()
-		k = &StringExp{Line: nameExp.Line, Str: nameExp.Name}
-		v = parseExp(lexer)
-		return
+		if lexer.LookAhead() == TOKEN_OP_ASSIGN {
+			// name = exp => [LiteralString] = exp
+			lexer.NextToken()
+			k = &StringExp{Line: nameExp.Line, Str: nameExp.Name}
+			v = parseExp(lexer)
+			return
+		}
 	}
 	return nil, exp
 }
 
-func _parseFieldList(lexer *Lexer) (ks, vs []Exp) {
-	if lexer.LookAhead() != TOKEN_SEP_RCURLY { //}
-		k, v := _parseField(lexer)
-		ks = append(ks, k)
-		vs = append(vs, v)
-		for _isFieldSep(lexer.LookAhead()) {
-			lexer.NextToken()
-			if lexer.LookAhead() != TOKEN_SEP_RCURLY { //}
-				k, v = _parseFieldList(lexer)
-				ks = append(ks, k)
-				vs = append(vs, v)
-			} else {
-				break
-			}
-		}
-	}
-	return
-}
 
-func parseTableConstructorExp(lexer *Lexer) *TableConstructorExp {
-	line := lexer.Line()
-	lexer.NextTokenOfKind(TOKEN_SEP_LCURLY)    //{
-	keyExps, valExps := _parseFieldList(lexer) //{fieldList}
-	lexer.NextTokenOfKind(TOKEN_SEP_RCURLY)    //}
-	lastLine := lexer.Line()
-	return &TableConstructorExp{Line: line, LastLine: lastLine, KeyExps: keyExps, ValExps: valExps}
-}
+

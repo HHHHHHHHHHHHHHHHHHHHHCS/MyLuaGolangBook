@@ -25,7 +25,7 @@ func (test *CH12Test) DoTest() {
 	ls.Call(0, 0)
 }
 
-func (test CH12Test) print(ls BasicAPI) int {
+func (test CH12Test) print(ls LuaState) int {
 	nArgs := ls.GetTop()
 	for i := 1; i <= nArgs; i++ {
 		if ls.IsBoolean(i) {
@@ -43,7 +43,7 @@ func (test CH12Test) print(ls BasicAPI) int {
 	return 0
 }
 
-func (test CH12Test) next(ls BasicAPI) int {
+func (test CH12Test) next(ls LuaState) int {
 	//参数1 是表   参数2 是上一个键   如果2没有则为nil
 	ls.SetTop(2)
 	if ls.Next(1) {
@@ -56,7 +56,7 @@ func (test CH12Test) next(ls BasicAPI) int {
 	}
 }
 
-func (test CH12Test) pairs(ls BasicAPI) int {
+func (test CH12Test) pairs(ls LuaState) int {
 	//3个参数      第三个是头指针是nil
 	ls.PushGoFunction(test.next)
 	ls.PushValue(1)
@@ -64,7 +64,7 @@ func (test CH12Test) pairs(ls BasicAPI) int {
 	return 3
 }
 
-func (test CH12Test) _iPairsAux(ls BasicAPI) int {
+func (test CH12Test) _iPairsAux(ls LuaState) int {
 	i := ls.ToInteger(2) + 1
 	ls.PushInteger(i)
 	if ls.GetI(1, i) == LUA_TNIL {
@@ -76,7 +76,7 @@ func (test CH12Test) _iPairsAux(ls BasicAPI) int {
 	}
 }
 
-func (test CH12Test) iPairs(ls BasicAPI) int {
+func (test CH12Test) iPairs(ls LuaState) int {
 	ls.PushGoFunction(test._iPairsAux)
 	ls.PushValue(1)
 	ls.PushInteger(0)

@@ -5,12 +5,12 @@ import . "LuaGo/api"
 type luaStack struct {
 	slots   []luaValue       //栈存放值
 	top     int              //栈顶索引
-	prev    *luaStack        //形成链表节点用
+	state   *luaState        //虚拟机
 	closure *closure         //闭包
 	varargs []luaValue       //实现变长参数
-	pc      int              //内部指令
-	state   *luaState        //虚拟机
 	openuvs map[int]*upvalue //捕获的局部变量(Open状态)
+	pc      int              //内部指令
+	prev    *luaStack        //形成链表节点用
 }
 
 //创建指定长度的lua stack
@@ -52,15 +52,38 @@ func (self *luaStack) pop() luaValue {
 	return val
 }
 
+//推入N个数值
+func (self *luaStack) pushN(vals []luaValue, n int) {
+	nVals := len(vals)
+	if n < 0 {
+		n = nVals
+	}
+	for i := 0; i < n; i++ {
+		if i < nVals {
+			self.push(vals[i])
+		} else {
+			self.push(nil)
+		}
+
+	}
+}
+
 //把索引转换成绝对索引
+//一次性弹出N个值
+func (self *luaStack) popN(n int) []luaValue {
+	vals := make([]luaValue, n)
+	for i := n - 1; i >= 0; i-- {
+		vals[i] = self.pop()
+	}
+	return vals
+}
+
 func (self *luaStack) absIndex(idx int) int {
 	//超出栈范围了
-	if idx <= LUA_REGISTRYINDEX {
+	if idx >= 0 || idx <= LUA_REGISTRYINDEX {
 		return idx
 	}
-	if idx >= 0 {
-		return idx
-	}
+
 	return idx + self.top + 1
 }
 
@@ -139,27 +162,6 @@ func (self *luaStack) reverse(from, to int) {
 	}
 }
 
-//一次性弹出N个值
-func (self *luaStack) popN(n int) []luaValue {
-	vals := make([]luaValue, n)
-	for i := n - 1; i >= 0; i-- {
-		vals[i] = self.pop()
-	}
-	return vals
-}
 
-//推入N个数值
-func (self *luaStack) pushN(vals []luaValue, n int) {
-	nVals := len(vals)
-	if n < 0 {
-		n = nVals
-	}
-	for i := 0; i < n; i++ {
-		if i < nVals {
-			self.push(vals[i])
-		} else {
-			self.push(nil)
-		}
 
-	}
-}
+

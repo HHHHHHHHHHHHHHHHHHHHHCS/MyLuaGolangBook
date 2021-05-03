@@ -7,6 +7,11 @@ const LUA_RIDX_GLOBALS int64 = 2                //全局环境注册表里面的
 const LUA_MULTRET = -1                          //多返回值
 
 const (
+	LUA_MAXINTEGER = 1<<63 - 1
+	LUA_MININTEGER = -1 << 63
+)
+
+const (
 	LUA_TNONE = iota - 1 //-1 无效索引值
 	LUA_TNIL
 	LUA_TBOOLEAN

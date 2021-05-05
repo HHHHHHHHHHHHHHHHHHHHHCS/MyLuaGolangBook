@@ -216,7 +216,7 @@ func (self *luaState) CallMeta(obj int, event string) bool {
 func (self *luaState) OpenLibs() {
 	libs := map[string]GoFunction{
 		"_G": stdlib.OpenBaseLib,
-		//TODO:
+		//TODO:NEED ADD
 	}
 
 	for name, fun := range libs {

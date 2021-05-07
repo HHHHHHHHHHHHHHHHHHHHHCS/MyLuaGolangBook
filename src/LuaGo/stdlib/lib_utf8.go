@@ -56,7 +56,50 @@ func utfByteOffset(ls LuaState) int {
 	if n < 0 {
 		i = sLen + 1
 	}
-	i = posRelat(ls.OptInteger(3,int64()))
-	//todo:
+	i = posRelat(ls.OptInteger(3, int64(i)), sLen)
+	ls.ArgCheck(1 <= i && i <= sLen+1, 3, "position out of range")
+	i--
 
+	if n == 0 {
+		for i > 0 && _isCont(s[i]) {
+			i--
+		}
+	} else {
+		if i < sLen && _isCont(s[i]) {
+			ls.Error2("initial position is a continuation byte")
+		}
+		if n < 0 {
+			for n < 0 && i > 0 { //move back
+				for {
+					i--
+					if !(i > 0 && _isCont(s[i])) {
+						break
+					}
+				}
+				n++
+			}
+		} else {
+			n-- //dont move for 1st character
+			for n > 0 && i < sLen {
+				for { //find begin next character
+					i++
+					if i >= sLen || !_isCont(s[i]) {
+						break
+					}
+				}
+				n--
+			}
+		}
+	}
+
+	if n == 0 {
+		ls.PushInteger(int64(i + 1))
+	} else {
+		ls.PushNil()
+	}
+	return 1
+}
+
+func _isCont(b byte) bool {
+	return b&0xC0 == 0x80
 }

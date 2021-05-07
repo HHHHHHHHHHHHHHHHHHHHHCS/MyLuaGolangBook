@@ -1,7 +1,7 @@
 package stdlib
 
 import (
-	. "Luago/api"
+	. "LuaGo/api"
 	"fmt"
 	"strings"
 )

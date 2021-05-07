@@ -1,5 +1,9 @@
 package stdlib
 
+//import "C" 需要下载 MinGW
+// https://sourceforge.net/projects/mingw-w64/
+// 然后配置环境变量
+
 // #include <time.h>
 import "C"
 

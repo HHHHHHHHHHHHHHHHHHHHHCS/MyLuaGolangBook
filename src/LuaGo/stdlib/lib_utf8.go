@@ -100,6 +100,102 @@ func utfByteOffset(ls LuaState) int {
 	return 1
 }
 
+//utf8.codepoint(s[, i [, j]])
+func utfCodePoint(ls LuaState) int {
+	s := ls.CheckString(1)
+	sLen := len(s)
+	i := posRelat(ls.OptInteger(2, 1), sLen)
+	j := posRelat(ls.OptInteger(3, int64(i)), sLen)
+
+	ls.ArgCheck(i >= 1, 2, "out of range")
+	ls.ArgCheck(int(j) <= sLen, 3, "out of range")
+	if i > j {
+		return 0
+	}
+	if j-i >= LUA_MAXINTEGER {
+		return ls.Error2("string slice too long")
+	}
+
+	n := j - i + 1
+	ls.CheckStack2(n, "string slice too long")
+
+	n = 0
+	s = s[i-1:]
+	for i <= j {
+		code, size := utf8.DecodeRuneInString(s)
+		if code == utf8.RuneError {
+			return ls.Error2("invalid UTF-8 code")
+		}
+		ls.PushInteger(int64(code))
+		n++
+		i += size
+		s = s[size:]
+	}
+	return n
+}
+
+//utf8.char(...)
+func utfChar(ls LuaState) int {
+	n := ls.GetTop()
+	codePoints := make([]rune, n)
+
+	for i := 1; i <= n; i++ {
+		cp := ls.CheckInteger(i)
+		ls.ArgCheck(0 <= cp && cp <= MAX_UNICODE, i, "value out of range")
+		codePoints[i-1] = rune(cp)
+	}
+
+	ls.PushString(_encodeUtf8(codePoints))
+	return 1
+}
+
+func _encodeUtf8(codePoints []rune) string {
+	buf := make([]byte, 6)
+	str := make([]byte, 0, len(codePoints))
+
+	for _, cp := range codePoints {
+		n := utf8.EncodeRune(buf, cp)
+		str = append(str, buf[0:n]...)
+	}
+
+	return string(str)
+}
+
+//utf8.codes(s)
+func utfIterCodes(ls LuaState) int {
+	ls.CheckString(1)
+	ls.PushGoFunction(_iterAux)
+	ls.PushValue(1)
+	ls.PushInteger(0)
+	return 3
+}
+
+func _iterAux(ls LuaState) int {
+	s := ls.CheckString(1)
+	sLen := int64(len(s))
+	n := ls.ToInteger(2) - 1
+	if n < 0 {
+		n = 0
+	} else if n < sLen {
+		n++
+		for n < sLen && _isCont(s[n]) {
+			n++
+		}
+	}
+	if n >= sLen {
+		return 0
+	} else {
+		code, _ := utf8.DecodeRuneInString(s[n:])
+		if code == utf8.RuneError {
+			return ls.Error2("invalid UTF-8 code")
+		}
+		ls.PushInteger(n + 1)
+		ls.PushInteger(int64(code))
+		return 2
+	}
+
+}
+
 func _isCont(b byte) bool {
 	return b&0xC0 == 0x80
 }

@@ -20,17 +20,23 @@ const (
 	LUA_IGMARK    = "-"
 )
 
+var pkgFuncs = map[string]GoFunction{
+	"searchpath": pkgSearchPath,
+	/* placeholders */
+	"preload":   nil,
+	"cpath":     nil,
+	"path":      nil,
+	"searchers": nil,
+	"loaded":    nil,
+}
+
 var llFuncs = map[string]GoFunction{
 	"require": pkgRequire,
 }
 
-var pkgFuncs = map[string]GoFunction{
-	"searchpath": pkgSearchPath,
-}
-
 func OpenPackageLib(ls LuaState) int {
 	ls.NewLib(pkgFuncs)
-	createSearchsTable(ls)
+	createSearchersTable(ls)
 	//set paths
 	ls.PushString("./?.lua;./?/init.lua")
 	ls.SetField(-2, "path")
@@ -51,7 +57,7 @@ func OpenPackageLib(ls LuaState) int {
 	return 1                //return 'package' table
 }
 
-func createSearchsTable(ls LuaState) {
+func createSearchersTable(ls LuaState) {
 	searchers := []GoFunction{
 		preloadSearcher,
 		luaSearcher,
@@ -78,8 +84,9 @@ func luaSearcher(ls LuaState) int {
 	name := ls.CheckString(1)
 	ls.GetField(LuaUpvalueIndex(1), "path")
 	path, ok := ls.ToStringX(-1)
+
 	if !ok {
-		ls.Error2("'package.path' must be a string!")
+		ls.Error2("'package.path' must be a string")
 	}
 
 	filename, errMsg := _searchPath(name, path, ".", LUA_DIRSEP)
@@ -95,21 +102,6 @@ func luaSearcher(ls LuaState) int {
 		return ls.Error2("error loading module '%s' from file '%s':\n\t%s",
 			ls.CheckString(1), filename, ls.CheckString(-1))
 	}
-}
-
-func _searchPath(name, path, sep, dirSep string) (filename, errMsg string) {
-	if sep != "" {
-		name = strings.Replace(name, sep, dirSep, -1)
-	}
-
-	for _, filename := range strings.Split(path, LUA_PATH_SEP) {
-		filename = strings.Replace(filename, LUA_PATH_MARK, name, -1)
-		if _, err := os.Stat(filename); !os.IsNotExist(err) {
-			return filename, ""
-		}
-		errMsg += "\n\tno file '" + filename + "'"
-	}
-	return "", errMsg
 }
 
 func pkgSearchPath(ls LuaState) int {
@@ -129,7 +121,68 @@ func pkgSearchPath(ls LuaState) int {
 	}
 }
 
+func _searchPath(name, path, sep, dirSep string) (filename, errMsg string) {
+	if sep != "" {
+		name = strings.Replace(name, sep, dirSep, -1)
+	}
+
+	for _, filename := range strings.Split(path, LUA_PATH_SEP) {
+		filename = strings.Replace(filename, LUA_PATH_MARK, name, -1)
+		if _, err := os.Stat(filename); !os.IsNotExist(err) {
+			return filename, ""
+		}
+		errMsg += "\n\tno file '" + filename + "'"
+	}
+	return "", errMsg
+}
+
 func pkgRequire(ls LuaState) int {
-	name:=ls.CheckString(1)
-	//todo:
+	name := ls.CheckString(1)
+	ls.SetTop(1) //LOADED table will be at index 2
+	ls.GetField(LUA_REGISTRYINDEX, LUA_LOADED_TABLE)
+	ls.GetField(2, name) //LOADED[name]
+	if ls.ToBoolean(-1) {
+		return 1 //package is already loaded
+	}
+	//else
+	ls.Pop(1) // remove 'getfield' result
+	_findLoader(ls, name)
+	ls.PushString(name) //pass name arg
+	ls.Insert(-2)       //name is 1st arg (before search data)
+	ls.Call(2, 1)       //run loader to load module
+	if !ls.IsNil(-1) {  //LOADED[name] = return value
+		ls.SetField(2, name)
+	}
+	if ls.GetField(2, name) == LUA_TNIL { //module set no value
+		ls.PushBoolean(true) //use true as result
+		ls.PushValue(-1)     //extra copy to be returned
+		ls.SetField(2, name) //LOADED[name] = true
+	}
+	return 1
+}
+
+func _findLoader(ls LuaState, name string) {
+	if ls.GetField(LuaUpvalueIndex(1), "searchers") != LUA_TTABLE {
+		ls.Error2("'package.searchers' must be a table")
+	}
+
+	errMsg := "module '" + name + "' not found:"
+
+	for i := int64(1); ; i++ {
+		if ls.RawGetI(3, i) == LUA_TNIL { //no more searchers?
+			ls.Pop(1)         //remove nil
+			ls.Error2(errMsg) //create error msg
+		}
+
+		ls.PushString(name)
+		ls.Call(1, 2)          //call
+		if ls.IsFunction(-2) { //find a loader
+			return
+		} else if ls.IsString(-2) { //searcher returned error msg
+			ls.Pop(1)
+			errMsg += ls.CheckString(-1)
+		} else { //remove both returns
+			ls.Pop(2)
+		}
+	}
 }

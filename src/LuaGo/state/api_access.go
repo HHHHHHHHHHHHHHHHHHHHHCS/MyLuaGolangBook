@@ -164,6 +164,16 @@ func (self *luaState) ToStringX(idx int) (string, bool) {
 	}
 }
 
+func (self *luaState) ToThread(idx int) LuaState {
+	val := self.stack.get(idx)
+	if val != nil {
+		if ls, ok := val.(*luaState); ok {
+			return ls
+		}
+	}
+	return nil
+}
+
 //从栈中返回goFunc
 func (self *luaState) ToGoFunction(idx int) GoFunction {
 	val := self.stack.get(idx)
@@ -176,3 +186,4 @@ func (self *luaState) ToGoFunction(idx int) GoFunction {
 func (self *luaState) ToPointer(idx int) interface{} {
 	return self.stack.get(idx)
 }
+

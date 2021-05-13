@@ -48,3 +48,8 @@ func (self *luaState) PushGlobalTable() {
 	global := self.registry.get(LUA_RIDX_GLOBALS)
 	self.stack.push(global)
 }
+
+func(self *luaState) PushThread() bool{
+	self.stack.push(self)
+	return self.isMainThread()
+}

@@ -25,6 +25,8 @@ func typeOf(val luaValue) LuaType {
 		return LUA_TTABLE
 	case *closure:
 		return LUA_TFUNCTION
+	case *luaState:
+		return LUA_TTHREAD
 	default:
 		panic("todo!")
 	}
@@ -81,8 +83,6 @@ func _stringToInteger(s string) (int64, bool) {
 	}
 	return 0, false
 }
-
-
 
 func getMetatable(val luaValue, ls *luaState) *luaTable {
 	if t, ok := val.(*luaTable); ok {

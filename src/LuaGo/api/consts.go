@@ -4,6 +4,7 @@ const LUA_MINSTACK = 20                         //默认最小栈长度
 const LUAI_MAXSTACK = 1000000                   //最大栈索引 有正负
 const LUA_REGISTRYINDEX = -LUAI_MAXSTACK - 1000 //LUA自己用的伪索引  返回组注册表用
 const LUA_RIDX_GLOBALS int64 = 2                //全局环境注册表里面的索引
+const LUA_RIDX_MAINTHREAD int64 = 1             //主线程索引
 const LUA_MULTRET = -1                          //多返回值
 
 const (

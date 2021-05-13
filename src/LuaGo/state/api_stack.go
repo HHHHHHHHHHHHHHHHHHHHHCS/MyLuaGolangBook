@@ -87,3 +87,8 @@ func (self *luaState) SetTop(idx int) {
 		}
 	}
 }
+
+func (self *luaState) XMove(to luaState, n int) {
+	vals := self.stack.popN(n)
+	to.(*luaState).stack.pushN(vals, n)
+}

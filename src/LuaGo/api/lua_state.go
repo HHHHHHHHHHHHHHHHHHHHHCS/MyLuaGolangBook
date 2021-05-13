@@ -98,5 +98,14 @@ type BasicAPI interface {
 	//try catch
 	Error() int
 	StringToNumber(s string) bool
+	//coroutine
+	NewThread() LuaState
+	Resume(from LuaState, nArgs int) int
+	Yield(nResults int) int
+	Status() int
+	IsYieldable() bool
+	ToThread(idx int) LuaState
+	PushThread() bool
+	XMove(to LuaState, n int)
+	GetStack() bool //debug
 }
-

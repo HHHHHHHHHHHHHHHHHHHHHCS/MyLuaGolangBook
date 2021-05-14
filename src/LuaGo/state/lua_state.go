@@ -11,7 +11,7 @@ type luaState struct {
 }
 
 //Lua栈初始容量
-func New() *luaState {
+func New() LuaState {
 	ls := &luaState{}
 
 	//每个lua解释器都有自己的注册表
@@ -24,6 +24,14 @@ func New() *luaState {
 	return ls
 }
 
+func GetLuaState(from LuaState) *luaState {
+	return from.(*luaState)
+}
+
+func (self *luaState) isMainThread() bool {
+	return self.registry.get(LUA_RIDX_MAINTHREAD) == self
+}
+
 func (self *luaState) pushLuaStack(stack *luaStack) {
 	stack.prev = self.stack
 	self.stack = stack
@@ -33,8 +41,4 @@ func (self *luaState) popLuaStack() {
 	stack := self.stack
 	self.stack = stack.prev
 	stack.prev = nil
-}
-
-func (self *luaState) isMainThread() bool {
-	return self.registry.get(LUA_RIDX_MAINTHREAD) == self
 }

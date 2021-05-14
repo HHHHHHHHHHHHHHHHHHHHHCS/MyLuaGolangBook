@@ -1,5 +1,7 @@
 package state
 
+import . "LuaGo/api"
+
 //返回栈顶索引
 func (self *luaState) GetTop() int {
 	return self.stack.top
@@ -88,7 +90,7 @@ func (self *luaState) SetTop(idx int) {
 	}
 }
 
-func (self *luaState) XMove(to luaState, n int) {
+func (self *luaState) XMove(to LuaState, n int) {
 	vals := self.stack.popN(n)
 	to.(*luaState).stack.pushN(vals, n)
 }

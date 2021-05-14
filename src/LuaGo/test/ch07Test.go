@@ -33,7 +33,7 @@ func (test *CH07Test) DoTest() {
 
 func (test *CH07Test) luaMain(data []byte, proto *binchunk.Prototype) {
 	nRegs := int(proto.MaxStackSize)
-	ls := state.New()
+	ls := state.GetLuaState(state.New())
 	ls.Load(data, "src/CH00_Luac/CH07Test.luac", "b")
 	ls.SetTop(nRegs)
 	for {

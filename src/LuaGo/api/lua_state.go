@@ -30,6 +30,7 @@ type BasicAPI interface {
 	Remove(idx int)
 	Rotate(idx, n int)
 	SetTop(idx int)
+	XMove(to LuaState, n int)
 	//栈访问 stack->go
 	TypeName(tp LuaType) string
 	Type(idx int) LuaType
@@ -52,6 +53,7 @@ type BasicAPI interface {
 	ToString(idx int) string
 	ToStringX(idx int) (string, bool)
 	ToGoFunction(idx int) GoFunction
+	ToThread(idx int) LuaState
 	ToPointer(idx int) interface{}
 	RawLen(idx int) uint
 	//压入栈 go->stacks
@@ -64,6 +66,7 @@ type BasicAPI interface {
 	PushGoFunction(f GoFunction)
 	PushGoClosure(f GoFunction, n int)
 	PushGlobalTable()
+	PushThread() bool
 	//执行算数和按位运算
 	Arith(op ArithOp)
 	Compare(idx1, idx2 int, op CompareOp) bool
@@ -104,8 +107,5 @@ type BasicAPI interface {
 	Yield(nResults int) int
 	Status() int
 	IsYieldable() bool
-	ToThread(idx int) LuaState
-	PushThread() bool
-	XMove(to LuaState, n int)
 	GetStack() bool //debug
 }
